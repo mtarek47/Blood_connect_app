@@ -1,0 +1,6 @@
+{
+  "name": "Blood Connect",
+  "description": "A real-time blood donation application connecting donors and recipients efficiently with smart matching and profile management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
