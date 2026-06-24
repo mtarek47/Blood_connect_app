@@ -60,7 +60,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
-import com.example.data.local.BloodDatabase
 import com.example.data.repository.BloodRepository
 import com.example.ui.AppNotification
 import com.example.ui.BloodViewModel
@@ -83,9 +82,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Room Initializers
-        val database = BloodDatabase.getDatabase(applicationContext)
-        val repository = BloodRepository(database.bloodDao)
+        // API-based Repository — context দিয়ে init
+        val repository = BloodRepository(applicationContext)
         val factory = ViewModelFactory(application, repository)
         viewModel = ViewModelProvider(this, factory)[BloodViewModel::class.java]
 

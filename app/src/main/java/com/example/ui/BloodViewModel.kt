@@ -5,8 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.AdminConfig
-import com.example.data.local.BloodDatabase
 import com.example.data.model.BloodRequest
 import com.example.data.model.Donation
 import com.example.data.model.User
@@ -19,9 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -51,22 +46,25 @@ class BloodViewModel(
     private val _searchedBloodGroup = MutableStateFlow("All")
     val searchedBloodGroup: StateFlow<String> = _searchedBloodGroup.asStateFlow()
 
-    // UI Feedback status (Errors/Success)
+    // UI Feedback
     private val _authError = MutableStateFlow<String?>(null)
     val authError: StateFlow<String?> = _authError.asStateFlow()
 
     private val _actionSuccess = MutableStateFlow<String?>(null)
     val actionSuccess: StateFlow<String?> = _actionSuccess.asStateFlow()
 
-    // Simulating Live In-App Push Notifications
+    // Loading state
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    // In-app notifications
     private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
 
-    // Shared flow to trigger alert banners
     private val _newNotificationAlert = MutableSharedFlow<AppNotification>()
     val newNotificationAlert: SharedFlow<AppNotification> = _newNotificationAlert.asSharedFlow()
 
-    // Observed fields
+    // Observed from repository flows
     val activeRequests: StateFlow<List<BloodRequest>> = repository.activeRequests
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -76,39 +74,33 @@ class BloodViewModel(
     val allUsers: StateFlow<List<User>> = repository.allUsers
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Dynamic Donors filter
-    val searchedDonors: StateFlow<List<User>> = _searchedBloodGroup
-        .flatMapLatest { group -> repository.getAvailableDonors(group) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Donors list (refreshed on blood group change)
+    private val _searchedDonors = MutableStateFlow<List<User>>(emptyList())
+    val searchedDonors: StateFlow<List<User>> = _searchedDonors.asStateFlow()
 
-    // Map of request responses
-    val currentRequestResponses: StateFlow<List<Donation>> = _selectedRequest
-        .flatMapLatest { req ->
-            if (req != null) repository.getDonationsByRequest(req.id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Donations for selected request
+    private val _currentRequestResponses = MutableStateFlow<List<Donation>>(emptyList())
+    val currentRequestResponses: StateFlow<List<Donation>> = _currentRequestResponses.asStateFlow()
 
     init {
-        seedInitialMockData()
+        checkExistingSession()
     }
 
-    private fun seedInitialMockData() = viewModelScope.launch {
-        val users = repository.allUsers.first()
-        if (users.isEmpty()) {
-            // শুধু admin user seed করা হচ্ছে
-            repository.registerUser(
-                User(
-                    name = "Admin",
-                    phone = AdminConfig.ADMIN_PHONE,
-                    address = "Blood Connect HQ",
-                    bloodGroup = "O+",
-                    passwordHash = AdminConfig.ADMIN_PASSWORD,
-                    isVerified = true,
-                    isAdmin = true,
-                    availability = false
-                )
-            )
+    // Auto-login if token exists
+    private fun checkExistingSession() = viewModelScope.launch {
+        val token = repository.sessionManager.loadToken()
+        if (token != null) {
+            // Token আছে — dashboard-এ যাও, data refresh করো
+            navigateTo(Screen.Dashboard)
+            refreshAll()
+        } else {
+            navigateTo(Screen.Login)
         }
+    }
+
+    private fun refreshAll() = viewModelScope.launch {
+        repository.refreshActiveRequests()
+        refreshDonors(_searchedBloodGroup.value)
     }
 
     fun navigateTo(screen: Screen) {
@@ -120,45 +112,43 @@ class BloodViewModel(
     fun selectRequest(request: BloodRequest) {
         _selectedRequest.value = request
         navigateTo(Screen.RequestDetails)
+        loadDonationsForRequest(request.id)
+    }
+
+    private fun loadDonationsForRequest(requestId: Int) = viewModelScope.launch {
+        _currentRequestResponses.value = repository.getDonationsForRequest(requestId)
     }
 
     fun setSearchedBloodGroup(group: String) {
         _searchedBloodGroup.value = group
+        viewModelScope.launch { refreshDonors(group) }
     }
 
-    // Auth actions
+    private suspend fun refreshDonors(bloodGroup: String) {
+        _searchedDonors.value = repository.refreshDonors(bloodGroup)
+    }
+
+    // ─── Auth ──────────────────────────────────────────────────────────────────
     fun register(
-        name: String,
-        phone: String,
-        address: String,
-        bloodGroup: String,
-        password: String,
-        nidFront: String?,
-        nidBack: String?,
-        profilePhoto: String?
+        name: String, phone: String, address: String,
+        bloodGroup: String, password: String,
+        nidFront: String?, nidBack: String?, profilePhoto: String?
     ) = viewModelScope.launch {
         _authError.value = null
         if (name.isBlank() || phone.isBlank() || address.isBlank() || password.isBlank()) {
             _authError.value = "All key fields must be completed!"
             return@launch
         }
-        val newUser = User(
-            name = name,
-            phone = phone,
-            address = address,
-            bloodGroup = bloodGroup,
-            passwordHash = password, // Local mock hash
-            nidImageFront = nidFront,
-            nidImageBack = nidBack,
-            profileImage = profilePhoto,
-            availability = true,
-            isVerified = false // Needs admin check
+        _isLoading.value = true
+        val result = repository.registerUser(
+            name, phone, address, bloodGroup, password,
+            profilePhoto, nidFront, nidBack
         )
-        val result = repository.registerUser(newUser)
-        result.onSuccess { id ->
-            val registered = newUser.copy(id = id.toInt())
-            _currentUser.value = registered
-            _actionSuccess.value = "Registration completely successful! NID pending verification."
+        _isLoading.value = false
+        result.onSuccess { user ->
+            _currentUser.value = user
+            _actionSuccess.value = "Registration successful! NID pending verification."
+            refreshAll()
             navigateTo(Screen.Dashboard)
         }.onFailure { err ->
             _authError.value = err.message ?: "Registration failed."
@@ -171,10 +161,17 @@ class BloodViewModel(
             _authError.value = "Please complete phone and password fields."
             return@launch
         }
+        _isLoading.value = true
         val result = repository.loginUser(phone, password)
+        _isLoading.value = false
         result.onSuccess { user ->
             _currentUser.value = user
             _actionSuccess.value = "Welcome back, ${user.name}!"
+            refreshAll()
+            if (user.isAdmin) {
+                repository.refreshUnverifiedUsers()
+                repository.refreshAllUsers()
+            }
             navigateTo(Screen.Dashboard)
         }.onFailure { err ->
             _authError.value = err.message ?: "Authentication failed."
@@ -182,127 +179,108 @@ class BloodViewModel(
     }
 
     fun logout() {
+        repository.logout()
         _currentUser.value = null
         _selectedRequest.value = null
         _notifications.value = emptyList()
         navigateTo(Screen.Login)
     }
 
+    // ─── Profile ───────────────────────────────────────────────────────────────
     fun toggleAvailability() = viewModelScope.launch {
         val user = _currentUser.value ?: return@launch
-        val updated = user.copy(availability = !user.availability)
-        repository.updateUser(updated)
-        _currentUser.value = updated
-        _actionSuccess.value = "Availability updated successfully!"
+        val newAvailability = !user.availability
+        val result = repository.updateUser(availability = newAvailability)
+        result.onSuccess {
+            _currentUser.value = user.copy(availability = newAvailability)
+            _actionSuccess.value = "Availability updated successfully!"
+        }
     }
 
     fun updateAddress(newAddress: String) = viewModelScope.launch {
         val user = _currentUser.value ?: return@launch
         if (newAddress.isBlank()) return@launch
-        val updated = user.copy(address = newAddress)
-        repository.updateUser(updated)
-        _currentUser.value = updated
-        _actionSuccess.value = "Address database updated!"
+        val result = repository.updateUser(address = newAddress)
+        result.onSuccess {
+            _currentUser.value = user.copy(address = newAddress)
+            _actionSuccess.value = "Address updated!"
+        }
     }
 
-    // Post new blood request
+    // ─── Blood Requests ────────────────────────────────────────────────────────
     fun createRequest(
-        bloodGroup: String,
-        location: String,
-        hospitalName: String?,
-        urgencyLevel: String
+        bloodGroup: String, location: String,
+        hospitalName: String?, urgencyLevel: String
     ) = viewModelScope.launch {
         val user = _currentUser.value ?: return@launch
         if (location.isBlank()) {
             _authError.value = "Please enter request location"
             return@launch
         }
+        _isLoading.value = true
+        val result = repository.createBloodRequest(bloodGroup, location, hospitalName, urgencyLevel)
+        _isLoading.value = false
+        result.onSuccess {
+            // In-app notification
+            val fakeReq = BloodRequest(
+                recipientId = user.id, recipientName = user.name,
+                recipientPhone = user.phone, bloodGroup = bloodGroup,
+                location = location, hospitalName = hospitalName,
+                urgencyLevel = urgencyLevel, status = "active"
+            )
+            val notification = AppNotification(
+                id = System.currentTimeMillis().toInt(),
+                title = "EMERGENCY - $bloodGroup Blood Required!",
+                message = "${user.name} needs blood at $location. Urgency: $urgencyLevel.",
+                bloodGroup = bloodGroup,
+                request = fakeReq
+            )
+            val list = _notifications.value.toMutableList()
+            list.add(0, notification)
+            _notifications.value = list
+            _newNotificationAlert.emit(notification)
 
-        val request = BloodRequest(
-            recipientId = user.id,
-            recipientName = user.name,
-            recipientPhone = user.phone,
-            bloodGroup = bloodGroup,
-            location = location,
-            hospitalName = hospitalName,
-            urgencyLevel = urgencyLevel,
-            status = "active"
-        )
-        val reqId = repository.createBloodRequest(request)
-
-        // Trigger dynamic mock notification to matching users
-        triggerMatchingNotification(request.copy(id = reqId.toInt()))
-
-        _actionSuccess.value = "Emergency request published! Matching donors notified."
-        navigateTo(Screen.Dashboard)
+            _actionSuccess.value = "Emergency request published!"
+            navigateTo(Screen.Dashboard)
+        }.onFailure {
+            _authError.value = "Failed to create request. Check your connection."
+        }
     }
 
     fun completeRequest(request: BloodRequest) = viewModelScope.launch {
-        val updated = request.copy(status = "completed")
-        repository.updateBloodRequest(updated)
-        if (_selectedRequest.value?.id == request.id) {
-            _selectedRequest.value = updated
+        val result = repository.completeRequest(request.id)
+        result.onSuccess {
+            _actionSuccess.value = "Request marked as completed!"
         }
-        _actionSuccess.value = "Request marked as completed!"
     }
 
-    // Respond to Request (Accept / Reject)
+    // ─── Donations ─────────────────────────────────────────────────────────────
     fun respondToRequest(request: BloodRequest, isAccepted: Boolean) = viewModelScope.launch {
-        val user = _currentUser.value ?: return@launch
         if (isAccepted) {
-            val donation = Donation(
-                donorId = user.id,
-                donorName = user.name,
-                donorPhone = user.phone,
-                donorProfileImage = user.profileImage,
-                requestId = request.id,
-                status = "accepted"
-            )
-            repository.respondToRequest(donation)
-            _actionSuccess.value = "Thank you! Contact details shared with ${request.recipientName}."
+            val result = repository.respondToRequest(request.id)
+            result.onSuccess {
+                _actionSuccess.value = "Thank you! Contact details shared with ${request.recipientName}."
+            }.onFailure {
+                _authError.value = "Could not respond. Try again."
+            }
         } else {
             _actionSuccess.value = "Request ignored."
         }
     }
 
-    // Admin verify user NID
+    // ─── Admin ─────────────────────────────────────────────────────────────────
     fun verifyUserNid(userId: Int) = viewModelScope.launch {
-        val user = repository.getUserByIdDirect(userId)
-        if (user != null) {
-            val updated = user.copy(isVerified = true)
-            repository.updateUser(updated)
-            // If the current user is verified, update session state too
-            if (_currentUser.value?.id == userId) {
-                _currentUser.value = updated
-            }
-            _actionSuccess.value = "NID documents verified for ${user.name}!"
+        val result = repository.verifyUserNid(userId)
+        result.onSuccess {
+            _actionSuccess.value = "NID verified successfully!"
+        }.onFailure {
+            _authError.value = "Verification failed. Try again."
         }
     }
 
-    // Simulate FCM background push notification
-    private fun triggerMatchingNotification(request: BloodRequest) {
-        viewModelScope.launch {
-            // Find matched donor criteria: checks matching blood type and if user is available
-            val potentialDonors = repository.getAvailableDonors(request.bloodGroup).first()
-
-            // In our dynamic local test, if our currentUser or mock profiles meet the criteria,
-            // we simulate delivering a prompt.
-            val notification = AppNotification(
-                id = request.id,
-                title = "EMERGENCY - ${request.bloodGroup} Blood Required!",
-                message = "${request.recipientName} needs blood at ${request.location}. Urgency: ${request.urgencyLevel}.",
-                bloodGroup = request.bloodGroup,
-                request = request
-            )
-
-            // Add to simulated notifications center
-            val currentList = _notifications.value.toMutableList()
-            currentList.add(0, notification)
-            _notifications.value = currentList
-
-            // Trigger the live Alert Bar
-            _newNotificationAlert.emit(notification)
-        }
+    fun loadAdminData() = viewModelScope.launch {
+        repository.refreshUnverifiedUsers()
+        repository.refreshAllUsers()
     }
 
     fun dismissNotification(id: Int) {
@@ -310,7 +288,7 @@ class BloodViewModel(
     }
 }
 
-// Sealed Screens representation
+// ─── Sealed Screens ────────────────────────────────────────────────────────────
 sealed class Screen {
     object Splash : Screen()
     object Login : Screen()
@@ -322,7 +300,7 @@ sealed class Screen {
     object Profile : Screen()
 }
 
-// Simulated App push notification structure
+// ─── In-app notification ───────────────────────────────────────────────────────
 data class AppNotification(
     val id: Int,
     val title: String,
@@ -332,7 +310,7 @@ data class AppNotification(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-// Factory
+// ─── Factory ──────────────────────────────────────────────────────────────────
 class ViewModelFactory(
     private val application: Application,
     private val repository: BloodRepository

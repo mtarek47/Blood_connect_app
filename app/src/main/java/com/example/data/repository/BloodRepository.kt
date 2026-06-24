@@ -1,93 +1,255 @@
 package com.example.data.repository
 
-import com.example.data.local.BloodDao
+import android.content.Context
+import android.net.Uri
+import com.example.data.local.SessionManager
 import com.example.data.model.BloodRequest
 import com.example.data.model.Donation
 import com.example.data.model.User
+import com.example.data.remote.ApiClient
+import com.example.data.remote.dto.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.io.FileOutputStream
 
-class BloodRepository(private val bloodDao: BloodDao) {
+class BloodRepository(private val context: Context) {
 
-    val activeRequests: Flow<List<BloodRequest>> = bloodDao.getActiveBloodRequests()
-    val allRequests: Flow<List<BloodRequest>> = bloodDao.getAllBloodRequests()
-    val allAvailableDonors: Flow<List<User>> = bloodDao.getAllAvailableDonors()
-    val unverifiedUsers: Flow<List<User>> = bloodDao.getUnverifiedUsers()
-    val allUsers: Flow<List<User>> = bloodDao.getAllUsers()
+    private val api = ApiClient.apiService
+    val sessionManager = SessionManager(context)
 
+    // In-memory cache flows (UI observe করে)
+    private val _activeRequests   = MutableStateFlow<List<BloodRequest>>(emptyList())
+    val activeRequests: Flow<List<BloodRequest>> = _activeRequests.asStateFlow()
+
+    private val _allUsers         = MutableStateFlow<List<User>>(emptyList())
+    val allUsers: Flow<List<User>> = _allUsers.asStateFlow()
+
+    private val _unverifiedUsers  = MutableStateFlow<List<User>>(emptyList())
+    val unverifiedUsers: Flow<List<User>> = _unverifiedUsers.asStateFlow()
+
+    // ─── Mappers: DTO → Domain model ────────────────────────────────────────────
+    private fun UserDto.toUser() = User(
+        id            = id,
+        name          = name,
+        phone         = phone,
+        address       = address,
+        bloodGroup    = bloodGroup,
+        profileImage  = profileImage,
+        nidImageFront = nidImageFront,
+        nidImageBack  = nidImageBack,
+        isVerified    = isVerified,
+        isAdmin       = isAdmin,
+        availability  = availability,
+        passwordHash  = ""   // never sent from server
+    )
+
+    private fun BloodRequestDto.toBloodRequest() = BloodRequest(
+        id             = id,
+        recipientId    = recipientId,
+        recipientName  = recipientName,
+        recipientPhone = recipientPhone,
+        bloodGroup     = bloodGroup,
+        location       = location,
+        hospitalName   = hospitalName,
+        urgencyLevel   = urgencyLevel,
+        status         = status
+    )
+
+    private fun DonationDto.toDonation() = Donation(
+        id                = id,
+        donorId           = donorId,
+        donorName         = donorName,
+        donorPhone        = donorPhone,
+        donorProfileImage = donorProfileImage,
+        requestId         = requestId,
+        status            = status
+    )
+
+    // ─── Auth ────────────────────────────────────────────────────────────────────
+    suspend fun registerUser(
+        name: String, phone: String, address: String,
+        bloodGroup: String, password: String,
+        profileImageUri: String?, nidFrontUri: String?, nidBackUri: String?
+    ): Result<User> = withContext(Dispatchers.IO) {
+        try {
+            val toBody = { s: String -> s.toRequestBody("text/plain".toMediaTypeOrNull()) }
+            val toFilePart = { uri: String?, fieldName: String ->
+                uri?.let {
+                    val file = uriToTempFile(Uri.parse(it)) ?: return@let null
+                    val reqBody = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData(fieldName, file.name, reqBody)
+                }
+            }
+
+            val response = api.register(
+                name       = toBody(name),
+                phone      = toBody(phone),
+                address    = toBody(address),
+                bloodGroup = toBody(bloodGroup),
+                password   = toBody(password),
+                profileImage = toFilePart(profileImageUri, "profile_image"),
+                nidFront     = toFilePart(nidFrontUri,    "nid_image_front"),
+                nidBack      = toFilePart(nidBackUri,     "nid_image_back")
+            )
+
+            if (response.isSuccessful) {
+                val body = response.body()!!
+                sessionManager.saveSession(body.token, body.user.id)
+                Result.success(body.user.toUser())
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Registration failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun loginUser(phone: String, password: String): Result<User> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.login(LoginRequest(phone, password))
+                if (response.isSuccessful) {
+                    val body = response.body()!!
+                    sessionManager.saveSession(body.token, body.user.id)
+                    Result.success(body.user.toUser())
+                } else {
+                    Result.failure(Exception("Incorrect phone or password"))
+                }
+            } catch (e: Exception) {
+                Result.failure(Exception("Connection failed. Check your internet."))
+            }
+        }
+
+    fun logout() = sessionManager.clearSession()
+
+    // ─── Users / Donors ──────────────────────────────────────────────────────────
     fun getAvailableDonors(bloodGroup: String): Flow<List<User>> {
-        return if (bloodGroup == "All" || bloodGroup.isEmpty()) {
-            bloodDao.getAllAvailableDonors()
-        } else {
-            bloodDao.getAvailableDonorsByBloodGroup(bloodGroup)
+        val flow = MutableStateFlow<List<User>>(emptyList())
+        return flow  // ViewModel coroutine-এ refreshDonors() call করে
+    }
+
+    suspend fun refreshDonors(bloodGroup: String = "All"): List<User> =
+        withContext(Dispatchers.IO) {
+            try {
+                val bg = if (bloodGroup == "All") null else bloodGroup
+                val response = api.getDonors(bg)
+                if (response.isSuccessful) response.body()?.map { it.toUser() } ?: emptyList()
+                else emptyList()
+            } catch (e: Exception) { emptyList() }
         }
-    }
 
-    fun getUserById(id: Int): Flow<User?> = bloodDao.getUserById(id)
+    suspend fun updateUser(address: String? = null, availability: Boolean? = null): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.updateProfile(UpdateProfileBody(address, availability))
+                if (response.isSuccessful) Result.success(Unit)
+                else Result.failure(Exception("Update failed"))
+            } catch (e: Exception) { Result.failure(e) }
+        }
 
-    suspend fun getUserByIdDirect(id: Int): User? = withContext(Dispatchers.IO) {
-        bloodDao.getUserByIdDirect(id)
-    }
-
-    suspend fun registerUser(user: User): Result<Long> = withContext(Dispatchers.IO) {
+    // ─── Blood Requests ──────────────────────────────────────────────────────────
+    suspend fun refreshActiveRequests() = withContext(Dispatchers.IO) {
         try {
-            val existing = bloodDao.getUserByPhone(user.phone)
-            if (existing != null) {
-                Result.failure(Exception("Phone number already registered"))
-            } else {
-                val newId = bloodDao.insertUser(user)
-                Result.success(newId)
+            val response = api.getActiveRequests()
+            if (response.isSuccessful) {
+                _activeRequests.value = response.body()?.map { it.toBloodRequest() } ?: emptyList()
             }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        } catch (e: Exception) { /* keep cached */ }
     }
 
-    suspend fun loginUser(phone: String, passwordHash: String): Result<User> = withContext(Dispatchers.IO) {
+    suspend fun createBloodRequest(
+        bloodGroup: String, location: String,
+        hospitalName: String?, urgencyLevel: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val user = bloodDao.getUserByPhone(phone)
-            if (user == null) {
-                Result.failure(Exception("Phone number not found"))
-            } else if (user.passwordHash != passwordHash) {
-                Result.failure(Exception("Incorrect password"))
-            } else {
-                Result.success(user)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
+            val response = api.createBloodRequest(
+                BloodRequestBody(bloodGroup, location, hospitalName, urgencyLevel)
+            )
+            if (response.isSuccessful) {
+                refreshActiveRequests()
+                Result.success(Unit)
+            } else Result.failure(Exception("Failed to create request"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun completeRequest(requestId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.completeRequest(requestId)
+            if (response.isSuccessful) {
+                refreshActiveRequests()
+                Result.success(Unit)
+            } else Result.failure(Exception("Failed to complete request"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    // ─── Donations ───────────────────────────────────────────────────────────────
+    suspend fun respondToRequest(requestId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.respondToRequest(DonationRequest(requestId))
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception("Failed to respond"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getDonationsForRequest(requestId: Int): List<Donation> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.getDonationsForRequest(requestId)
+                if (response.isSuccessful) response.body()?.map { it.toDonation() } ?: emptyList()
+                else emptyList()
+            } catch (e: Exception) { emptyList() }
         }
+
+    // ─── Admin ───────────────────────────────────────────────────────────────────
+    suspend fun refreshUnverifiedUsers() = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getUnverifiedUsers()
+            if (response.isSuccessful) {
+                _unverifiedUsers.value = response.body()?.map { it.toUser() } ?: emptyList()
+            }
+        } catch (e: Exception) { /* keep cached */ }
     }
 
-    suspend fun updateUser(user: User) = withContext(Dispatchers.IO) {
-        bloodDao.updateUser(user)
+    suspend fun refreshAllUsers() = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getAllUsers()
+            if (response.isSuccessful) {
+                _allUsers.value = response.body()?.map { it.toUser() } ?: emptyList()
+            }
+        } catch (e: Exception) { /* keep cached */ }
     }
 
-    suspend fun createBloodRequest(request: BloodRequest): Long = withContext(Dispatchers.IO) {
-        bloodDao.insertBloodRequest(request)
+    suspend fun verifyUserNid(userId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.verifyUser(userId)
+            if (response.isSuccessful) {
+                refreshUnverifiedUsers()
+                Result.success(Unit)
+            } else Result.failure(Exception("Verification failed"))
+        } catch (e: Exception) { Result.failure(e) }
     }
 
-    suspend fun updateBloodRequest(request: BloodRequest) = withContext(Dispatchers.IO) {
-        bloodDao.updateBloodRequest(request)
-    }
-
-    fun getRequestsByRecipient(recipientId: Int): Flow<List<BloodRequest>> {
-        return bloodDao.getRequestsByRecipientId(recipientId)
-    }
-
-    fun getDonationsByRequest(requestId: Int): Flow<List<Donation>> {
-        return bloodDao.getDonationsByRequestId(requestId)
-    }
-
-    fun getDonationsByDonor(donorId: Int): Flow<List<Donation>> {
-        return bloodDao.getDonationsByDonorId(donorId)
-    }
-
-    suspend fun respondToRequest(donation: Donation): Long = withContext(Dispatchers.IO) {
-        bloodDao.insertDonation(donation)
-    }
-
-    suspend fun updateDonation(donation: Donation) = withContext(Dispatchers.IO) {
-        bloodDao.updateDonation(donation)
+    // ─── Helpers ─────────────────────────────────────────────────────────────────
+    // URI (content://) → temp File (Retrofit multipart জন্য)
+    private fun uriToTempFile(uri: Uri): File? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+            val tempFile = File.createTempFile("upload_", ".jpg", context.cacheDir)
+            FileOutputStream(tempFile).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+            inputStream.close()
+            tempFile
+        } catch (e: Exception) {
+            null
+        }
     }
 }
