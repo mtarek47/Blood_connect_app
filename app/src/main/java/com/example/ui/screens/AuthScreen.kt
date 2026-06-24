@@ -619,7 +619,8 @@ fun AuthScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "Tarek Parvez \n Contact : tarekparvez47@gmail.com",
+                                        text = "Tarek Parvez \n" +
+                                                "Visit: https://tarekparvez.dev/",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
