@@ -17,6 +17,23 @@ val PolishOutline = Color(0xFFD8C2C0)
 val PolishSurfaceVariant = Color(0xFFE7E0EB)
 val PolishOnSurfaceVariant = Color(0xFF49454F)
 
+// Dark Theme Colors
+val PolishDarkPrimary = Color(0xFFFFB4AB)
+val PolishDarkOnPrimary = Color(0xFF690005)
+val PolishDarkPrimaryContainer = Color(0xFF93000A)
+val PolishDarkOnPrimaryContainer = Color(0xFFFFDAD6)
+val PolishDarkSecondary = Color(0xFFE7BDB8)
+val PolishDarkOnSecondary = Color(0xFF442926)
+val PolishDarkSecondaryContainer = Color(0xFF5D3F3B)
+val PolishDarkOnSecondaryContainer = Color(0xFFFFDAD6)
+val PolishDarkBackground = Color(0xFF201A19)
+val PolishDarkOnBackground = Color(0xFFEDE0DF)
+val PolishDarkSurface = Color(0xFF201A19)
+val PolishDarkOnSurface = Color(0xFFEDE0DF)
+val PolishDarkSurfaceVariant = Color(0xFF534341)
+val PolishDarkOnSurfaceVariant = Color(0xFFD8C2BF)
+val PolishDarkOutline = Color(0xFFA08C8A)
+
 // Support mappings for existing constants to ensure backwards compatibility and instant global adaptation
 val CrimsonPrimary = PolishPrimary
 val CrimsonDark = Color(0xFF93000A)
