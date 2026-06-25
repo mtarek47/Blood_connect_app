@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.LocalHospital
@@ -312,16 +313,24 @@ fun AppBottomNavigationBar(
             selected = requestActive,
             onClick = { onTabSelect(Screen.RequestCreate) },
             icon = {
-                Icon(
-                    imageVector = if (requestActive) Icons.Default.PostAdd else Icons.Outlined.PostAdd,
-                    contentDescription = "New Request"
-                )
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "New Request",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
             },
-            label = { Text("Request", fontWeight = FontWeight.SemiBold, fontSize = 11.sp) },
+            label = { Text("Request Blood", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 11.sp) },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary,
-                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                indicatorColor = Color.Transparent
             ),
             modifier = Modifier.testTag("nav_tab_create")
         )

@@ -386,25 +386,7 @@ fun DashboardScreen(
             }
         }
 
-        // Floating Action Button to create a blood request
-        FloatingActionButton(
-            onClick = { viewModel.navigateTo(Screen.RequestCreate) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 76.dp, end = 20.dp)
-                .testTag("fab_create_request"),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Request Blood", fontWeight = FontWeight.Bold)
-            }
-        }
+        // Floating Action Button moved to BottomNavigationBar
     }
 }
 
