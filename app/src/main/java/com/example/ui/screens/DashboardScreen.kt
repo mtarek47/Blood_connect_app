@@ -61,7 +61,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Brush
+import coil.compose.AsyncImage
+import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -454,26 +457,37 @@ fun HeaderSection(
                 }
             }
 
-            // Initials Avatar Box
-            val initials = if (!currentUser?.name.isNullOrBlank()) {
-                currentUser!!.name.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString("")
-            } else {
-                "GD"
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
-                    .border(2.dp, Color.White, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = initials,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
+            val profileImageUri = currentUser?.profileImage
+            if (!profileImageUri.isNullOrBlank()) {
+                AsyncImage(
+                    model = Uri.parse(profileImageUri),
+                    contentDescription = "Profile Photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color.White, CircleShape)
                 )
+            } else {
+                val initials = if (!currentUser?.name.isNullOrBlank()) {
+                    currentUser!!.name.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString("")
+                } else {
+                    "GD"
+                }
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
+                        .border(2.dp, Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = initials,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
             }
         }
     }
