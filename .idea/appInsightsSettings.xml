@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.aistudio.bloodconnect.qxytb" />
+                  <option name="mobileSdkAppId" value="1:617563751199:android:9824e573267f051e59e62a" />
+                  <option name="projectId" value="blood-connect-app-91a39" />
+                  <option name="projectNumber" value="617563751199" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

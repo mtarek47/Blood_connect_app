@@ -14,7 +14,7 @@ object ApiClient {
     // Real device (same WiFi): http://192.168.110.114:3000/api/
     // Emulator: http://10.0.2.2:3000/api/
     // Production: https://yourdomain.com/api/
-    private const val BASE_URL = "https://maroon-lion-596382.hostingersite.com/api/"
+    private const val BASE_URL = "http://10.0.2.2:3000/api/"
 
     // JWT token holder (SessionManager থেকে set হয়)
     var authToken: String? = null

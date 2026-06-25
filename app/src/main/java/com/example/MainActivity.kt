@@ -2,9 +2,11 @@ package com.example
 
 import android.os.Bundle
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.google.firebase.messaging.FirebaseMessaging
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -96,6 +98,16 @@ class MainActivity : ComponentActivity() {
                 MainOrchestrator(viewModel)
             }
         }
+
+        // Subscribe to FCM topic for blood requests
+        FirebaseMessaging.getInstance().subscribeToTopic("all_blood_requests")
+            .addOnCompleteListener { task ->
+                var msg = "Subscribed to all_blood_requests topic"
+                if (!task.isSuccessful) {
+                    msg = "Topic subscription failed"
+                }
+                Log.d("FCM", msg)
+            }
     }
 }
 
