@@ -168,6 +168,28 @@ class BloodRepository(private val context: Context) {
             } catch (e: Exception) { Result.failure(e) }
         }
 
+    suspend fun changePassword(oldPass: String, newPass: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.changePassword(UpdatePasswordBody(oldPass, newPass))
+                if (response.isSuccessful) Result.success(Unit)
+                else Result.failure(Exception(response.errorBody()?.string() ?: "Password update failed"))
+            } catch (e: Exception) { Result.failure(e) }
+        }
+
+    suspend fun updateProfileImage(uri: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                val file = uriToTempFile(Uri.parse(uri)) ?: return@withContext Result.failure(Exception("Could not load image"))
+                val reqBody = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                val part = MultipartBody.Part.createFormData("profile_image", file.name, reqBody)
+                val response = api.updateProfileImage(part)
+
+                if (response.isSuccessful) Result.success(Unit)
+                else Result.failure(Exception(response.errorBody()?.string() ?: "Failed to upload avatar"))
+            } catch (e: Exception) { Result.failure(e) }
+        }
+
     // ─── Blood Requests ──────────────────────────────────────────────────────────
     suspend fun refreshActiveRequests() = withContext(Dispatchers.IO) {
         try {

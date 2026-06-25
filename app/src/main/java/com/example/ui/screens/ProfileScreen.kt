@@ -39,6 +39,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -57,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,6 +82,16 @@ fun ProfileScreen(
 
     var addressText by remember { mutableStateOf(currentUser?.address ?: "") }
     var isEditingAddress by remember { mutableStateOf(false) }
+
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var oldPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.updateProfileImage(it) }
+    }
 
     Box(
         modifier = modifier
@@ -95,7 +112,8 @@ fun ProfileScreen(
                     .size(90.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    .clickable { imagePickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
                 val profileImageUri = currentUser?.profileImage
@@ -376,6 +394,24 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Change Password CTA
+                OutlinedButton(
+                    onClick = { showPasswordDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Lock, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Change Password", fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
                 // Sign Out CTA
                 OutlinedButton(
                     onClick = { viewModel.logout() },
@@ -395,6 +431,46 @@ fun ProfileScreen(
             }
 
             Spacer(modifier = Modifier.height(80.dp))
+        }
+
+        if (showPasswordDialog) {
+            AlertDialog(
+                onDismissRequest = { showPasswordDialog = false },
+                title = { Text("Change Password") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = oldPassword,
+                            onValueChange = { oldPassword = it },
+                            label = { Text("Old Password") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = newPassword,
+                            onValueChange = { newPassword = it },
+                            label = { Text("New Password") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.changePassword(oldPassword, newPassword)
+                        showPasswordDialog = false
+                        oldPassword = ""
+                        newPassword = ""
+                    }) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPasswordDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

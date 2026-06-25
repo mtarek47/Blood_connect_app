@@ -77,6 +77,12 @@ data class UpdateProfileBody(
 )
 
 @JsonClass(generateAdapter = true)
+data class UpdatePasswordBody(
+    @Json(name = "old_password") val oldPassword: String,
+    @Json(name = "new_password") val newPassword: String
+)
+
+@JsonClass(generateAdapter = true)
 data class DonationRequest(
     @Json(name = "request_id") val requestId: Int
 )

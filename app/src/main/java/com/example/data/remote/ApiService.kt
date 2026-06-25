@@ -37,6 +37,13 @@ interface ApiService {
     @PUT("users/me")
     suspend fun updateProfile(@Body body: UpdateProfileBody): Response<MessageResponse>
 
+    @PUT("users/me/password")
+    suspend fun changePassword(@Body body: UpdatePasswordBody): Response<MessageResponse>
+
+    @Multipart
+    @PUT("users/me/avatar")
+    suspend fun updateProfileImage(@Part profile_image: MultipartBody.Part): Response<MessageResponse>
+
     // ─── Blood Requests ───────────────────────────────────────────────────────
     @GET("blood-requests/active")
     suspend fun getActiveRequests(): Response<List<BloodRequestDto>>

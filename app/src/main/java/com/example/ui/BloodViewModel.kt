@@ -1,6 +1,7 @@
 package com.example.ui
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -17,6 +18,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -270,6 +273,43 @@ class BloodViewModel(
         }
     }
 
+    fun changePassword(oldPass: String, newPass: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = repository.changePassword(oldPass, newPass)
+            _isLoading.value = false
+            if (result.isSuccess) {
+                _actionSuccess.value = "Password changed successfully"
+                delay(3000)
+                _actionSuccess.value = null
+            } else {
+                _actionSuccess.value = "Failed to change password"
+                delay(3000)
+                _actionSuccess.value = null
+            }
+        }
+    }
+
+    fun updateProfileImage(uri: Uri) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = repository.updateProfileImage(uri.toString())
+            if (result.isSuccess) {
+                // Refresh the current user to get the new profile picture URL
+                repository.getCurrentUser().onSuccess { user ->
+                    _currentUser.value = user
+                    _actionSuccess.value = "Profile picture updated!"
+                }
+            } else {
+                _actionSuccess.value = "Failed to update profile picture"
+            }
+            _isLoading.value = false
+            delay(3000)
+            _actionSuccess.value = null
+        }
+    }
+
+    // ─── ADMIN Panel ─────────────────────────────────────────────────────────────
     // ─── Donations ─────────────────────────────────────────────────────────────
     fun respondToRequest(request: BloodRequest, isAccepted: Boolean) = viewModelScope.launch {
         if (isAccepted) {
