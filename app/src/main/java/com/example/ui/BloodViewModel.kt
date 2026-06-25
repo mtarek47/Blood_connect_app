@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 class BloodViewModel(
     application: Application,
@@ -87,6 +87,7 @@ class BloodViewModel(
 
     init {
         checkExistingSession()
+        startRealTimePolling()
     }
 
     // Auto-login if token exists
@@ -112,6 +113,55 @@ class BloodViewModel(
             navigateTo(Screen.Login)
         }
         _isLoading.value = false
+    }
+
+    private fun startRealTimePolling() = viewModelScope.launch {
+        // Poll every 5 seconds
+        launch {
+            while (isActive) {
+                delay(5000)
+                if (_currentUser.value != null && 
+                    currentScreen.value != Screen.Splash && 
+                    currentScreen.value != Screen.Login && 
+                    currentScreen.value != Screen.Register) {
+                    repository.refreshActiveRequests()
+                    refreshDonors(_searchedBloodGroup.value)
+                }
+            }
+        }
+        
+        // Listen for changes and notify
+        var firstLoad = true
+        var oldRequests = emptyList<BloodRequest>()
+        activeRequests.collect { newRequests ->
+            if (firstLoad) {
+                firstLoad = false
+                oldRequests = newRequests
+                return@collect
+            }
+            
+            // Only trigger if we already had some data or have loaded for the first time
+            if (oldRequests.isNotEmpty()) {
+                val newIds = newRequests.map { it.id }.toSet() - oldRequests.map { it.id }.toSet()
+                newIds.forEach { newId ->
+                    val newReq = newRequests.find { it.id == newId }
+                    if (newReq != null && newReq.recipientId != _currentUser.value?.id) {
+                        val notification = AppNotification(
+                            id = System.currentTimeMillis().toInt(),
+                            title = "EMERGENCY - ${newReq.bloodGroup} Blood Required!",
+                            message = "${newReq.recipientName} needs blood at ${newReq.location}. Urgency: ${newReq.urgencyLevel}.",
+                            bloodGroup = newReq.bloodGroup,
+                            request = newReq
+                        )
+                        val list = _notifications.value.toMutableList()
+                        list.add(0, notification)
+                        _notifications.value = list
+                        _newNotificationAlert.emit(notification)
+                    }
+                }
+            }
+            oldRequests = newRequests
+        }
     }
 
     private fun refreshAll() = viewModelScope.launch {
@@ -141,7 +191,13 @@ class BloodViewModel(
     }
 
     private suspend fun refreshDonors(bloodGroup: String) {
-        _searchedDonors.value = repository.refreshDonors(bloodGroup)
+        val donors = repository.refreshDonors(bloodGroup)
+        val currentUserId = currentUser.value?.id
+        _searchedDonors.value = if (currentUserId != null) {
+            donors.filter { it.id != currentUserId }
+        } else {
+            donors
+        }
     }
 
     // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -151,8 +207,12 @@ class BloodViewModel(
         nidFront: String?, nidBack: String?, profilePhoto: String?
     ) = viewModelScope.launch {
         _authError.value = null
-        if (name.isBlank() || phone.isBlank() || address.isBlank() || password.isBlank()) {
-            _authError.value = "All key fields must be completed!"
+        if (name.isBlank() || phone.isBlank() || address.isBlank() || password.isBlank() || bloodGroup.isBlank()) {
+            _authError.value = "All key fields including blood group must be completed!"
+            return@launch
+        }
+        if (nidFront.isNullOrBlank() || nidBack.isNullOrBlank() || profilePhoto.isNullOrBlank()) {
+            _authError.value = "You must provide your NID (Front & Back) and a Profile Picture!"
             return@launch
         }
         _isLoading.value = true
@@ -208,6 +268,10 @@ class BloodViewModel(
     // ─── Profile ───────────────────────────────────────────────────────────────
     fun toggleAvailability() = viewModelScope.launch {
         val user = _currentUser.value ?: return@launch
+        if (!user.isVerified) {
+            _authError.value = "Your ID is not verified yet. Please wait for admin approval to become an active donor."
+            return@launch
+        }
         val newAvailability = !user.availability
         val result = repository.updateUser(availability = newAvailability)
         result.onSuccess {
@@ -232,6 +296,10 @@ class BloodViewModel(
         hospitalName: String?, urgencyLevel: String
     ) = viewModelScope.launch {
         val user = _currentUser.value ?: return@launch
+        if (!user.isVerified) {
+            _authError.value = "Your ID is not verified yet. Please wait for admin approval to request blood."
+            return@launch
+        }
         if (location.isBlank()) {
             _authError.value = "Please enter request location"
             return@launch
@@ -312,6 +380,12 @@ class BloodViewModel(
     // ─── ADMIN Panel ─────────────────────────────────────────────────────────────
     // ─── Donations ─────────────────────────────────────────────────────────────
     fun respondToRequest(request: BloodRequest, isAccepted: Boolean) = viewModelScope.launch {
+        val user = _currentUser.value ?: return@launch
+        if (!user.isVerified && isAccepted) {
+            _authError.value = "Your ID is not verified yet. Please wait for admin approval to donate blood."
+            return@launch
+        }
+        
         if (isAccepted) {
             val result = repository.respondToRequest(request.id)
             result.onSuccess {

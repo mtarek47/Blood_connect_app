@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -89,6 +90,7 @@ fun DashboardScreen(
     val activeRequests by viewModel.activeRequests.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
     val actionSuccess by viewModel.actionSuccess.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val groups = listOf("All", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
 
@@ -233,7 +235,13 @@ fun DashboardScreen(
 
                             Switch(
                                 checked = currentUser?.availability == true,
-                                onCheckedChange = { viewModel.toggleAvailability() },
+                                onCheckedChange = { 
+                                    if (currentUser?.isVerified == true) {
+                                        viewModel.toggleAvailability() 
+                                    } else {
+                                        android.widget.Toast.makeText(context, "Your ID is not verified yet. Please wait for admin approval to become an active donor.", android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                },
                                 modifier = Modifier.testTag("availability_toggle_switch"),
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
@@ -383,7 +391,7 @@ fun DashboardScreen(
                     }
                 } else {
                     items(searchedDonors) { donor ->
-                        DonorItemCard(donor = donor)
+                        DonorItemCard(donor = donor, currentUser = currentUser)
                     }
                 }
             }
@@ -604,8 +612,10 @@ fun EmergencyRequestItem(
 @Composable
 fun DonorItemCard(
     donor: User,
+    currentUser: User?,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -707,7 +717,20 @@ fun DonorItemCard(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .clickable { /* Trigger call simulation */ }
+                    .clickable { 
+                        if (currentUser?.isVerified == true) {
+                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:${donor.phone}")
+                            }
+                            context.startActivity(intent)
+                        } else {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Admin must verify your NID before you can contact donors",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
                 color = Color.Transparent
             ) {

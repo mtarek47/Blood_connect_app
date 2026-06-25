@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Bloodtype
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
@@ -34,6 +35,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,9 +83,26 @@ fun ProfileScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val actionSuccess by viewModel.actionSuccess.collectAsState()
     val isAdmin by viewModel.isAdminUser.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    var addressText by remember { mutableStateOf(currentUser?.address ?: "") }
+    var editDivision by remember { mutableStateOf("") }
+    var editZilla by remember { mutableStateOf("") }
+    var divisionDropdownExpanded by remember { mutableStateOf(false) }
+    var zillaDropdownExpanded by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(isEditingAddress) {
+        if (isEditingAddress) {
+            val parts = currentUser?.address?.split(", ")
+            if (parts != null && parts.size == 2 && com.example.data.LocationData.divisions.contains(parts[1])) {
+                editZilla = parts[0]
+                editDivision = parts[1]
+            } else {
+                editDivision = ""
+                editZilla = ""
+            }
+        }
+    }
 
     var showPasswordDialog by remember { mutableStateOf(false) }
     var oldPassword by remember { mutableStateOf("") }
@@ -287,20 +308,102 @@ fun ProfileScreen(
 
                         if (isEditingAddress) {
                             Spacer(modifier = Modifier.height(10.dp))
-                            OutlinedTextField(
-                                value = addressText,
-                                onValueChange = { addressText = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("address_change_input"),
-                                placeholder = { Text("Enter your exact physical address") },
-                                shape = RoundedCornerShape(8.dp)
-                            )
+                            
+                            // Division Dropdown
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = editDivision.ifEmpty { "Select Division" },
+                                    label = { Text("Division") },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { divisionDropdownExpanded = true }
+                                        .testTag("edit_division_dropdown"),
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.clickable { divisionDropdownExpanded = true }
+                                        )
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                                    ),
+                                    enabled = false,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                DropdownMenu(
+                                    expanded = divisionDropdownExpanded,
+                                    onDismissRequest = { divisionDropdownExpanded = false },
+                                    modifier = Modifier.fillMaxWidth(0.85f)
+                                ) {
+                                    com.example.data.LocationData.divisions.forEach { div ->
+                                        DropdownMenuItem(
+                                            text = { Text(div) },
+                                            onClick = {
+                                                editDivision = div
+                                                editZilla = "" // Reset zilla when division changes
+                                                divisionDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Zilla Dropdown
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = editZilla.ifEmpty { "Select Zilla" },
+                                    label = { Text("Zilla / District") },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { if (editDivision.isNotEmpty()) zillaDropdownExpanded = true }
+                                        .testTag("edit_zilla_dropdown"),
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.clickable { if (editDivision.isNotEmpty()) zillaDropdownExpanded = true }
+                                        )
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                                    ),
+                                    enabled = false,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                DropdownMenu(
+                                    expanded = zillaDropdownExpanded,
+                                    onDismissRequest = { zillaDropdownExpanded = false },
+                                    modifier = Modifier.fillMaxWidth(0.85f)
+                                ) {
+                                    val zillas = com.example.data.LocationData.divisionsAndZillas[editDivision] ?: emptyList()
+                                    zillas.forEach { zil ->
+                                        DropdownMenuItem(
+                                            text = { Text(zil) },
+                                            onClick = {
+                                                editZilla = zil
+                                                zillaDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(10.dp))
                             Button(
                                 onClick = {
-                                    viewModel.updateAddress(addressText)
-                                    isEditingAddress = false
+                                    if (editDivision.isNotBlank() && editZilla.isNotBlank()) {
+                                        viewModel.updateAddress("$editZilla, $editDivision")
+                                        isEditingAddress = false
+                                    }
                                 },
                                 modifier = Modifier
                                     .align(Alignment.End)
@@ -342,7 +445,13 @@ fun ProfileScreen(
 
                         Switch(
                             checked = currentUser?.availability == true,
-                            onCheckedChange = { viewModel.toggleAvailability() },
+                            onCheckedChange = { 
+                                if (currentUser?.isVerified == true) {
+                                    viewModel.toggleAvailability() 
+                                } else {
+                                    android.widget.Toast.makeText(context, "Your ID is not verified yet. Please wait for admin approval to become an active donor.", android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            },
                             modifier = Modifier.testTag("profile_available_switch"),
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,

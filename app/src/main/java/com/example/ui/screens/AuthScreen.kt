@@ -93,9 +93,12 @@ fun AuthScreen(
     // Form states
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    var division by remember { mutableStateOf("") }
+    var zilla by remember { mutableStateOf("") }
+    var divisionDropdownExpanded by remember { mutableStateOf(false) }
+    var zillaDropdownExpanded by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
-    var bloodGroup by remember { mutableStateOf("O+") }
+    var bloodGroup by remember { mutableStateOf("") }
 
     // Real image URIs from camera
     var nidFrontUri by remember { mutableStateOf<Uri?>(null) }
@@ -315,22 +318,97 @@ fun AuthScreen(
                                 shape = RoundedCornerShape(12.dp)
                             )
 
-                            OutlinedTextField(
-                                value = address,
-                                onValueChange = { address = it },
-                                label = { Text("Address / Location") },
-                                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("reg_address_input"),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
+                            // Division Dropdown
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = division.ifEmpty { "Select Division" },
+                                    label = { Text("Division") },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { divisionDropdownExpanded = true }
+                                        .testTag("reg_division_dropdown"),
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.clickable { divisionDropdownExpanded = true }
+                                        )
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                                    ),
+                                    enabled = false,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                DropdownMenu(
+                                    expanded = divisionDropdownExpanded,
+                                    onDismissRequest = { divisionDropdownExpanded = false },
+                                    modifier = Modifier.fillMaxWidth(0.85f)
+                                ) {
+                                    com.example.data.LocationData.divisions.forEach { div ->
+                                        DropdownMenuItem(
+                                            text = { Text(div) },
+                                            onClick = {
+                                                division = div
+                                                zilla = "" // Reset zilla when division changes
+                                                divisionDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Zilla Dropdown
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = zilla.ifEmpty { "Select Zilla" },
+                                    label = { Text("Zilla / District") },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { if (division.isNotEmpty()) zillaDropdownExpanded = true }
+                                        .testTag("reg_zilla_dropdown"),
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.clickable { if (division.isNotEmpty()) zillaDropdownExpanded = true }
+                                        )
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                                    ),
+                                    enabled = false,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                DropdownMenu(
+                                    expanded = zillaDropdownExpanded,
+                                    onDismissRequest = { zillaDropdownExpanded = false },
+                                    modifier = Modifier.fillMaxWidth(0.85f)
+                                ) {
+                                    val zillas = com.example.data.LocationData.divisionsAndZillas[division] ?: emptyList()
+                                    zillas.forEach { zil ->
+                                        DropdownMenuItem(
+                                            text = { Text(zil) },
+                                            onClick = {
+                                                zilla = zil
+                                                zillaDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
 
                             // Blood Group Selector dropdown
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 OutlinedTextField(
-                                    value = "Selected Blood Group: $bloodGroup",
+                                    value = bloodGroup.ifEmpty { "Select Blood Group" },
+                                    label = { Text("Blood Group") },
                                     onValueChange = {},
                                     readOnly = true,
                                     modifier = Modifier
@@ -498,7 +576,7 @@ fun AuthScreen(
                                     viewModel.register(
                                         name = name,
                                         phone = phone,
-                                        address = address,
+                                        address = if (division.isNotBlank() && zilla.isNotBlank()) "$zilla, $division" else "",
                                         bloodGroup = bloodGroup,
                                         password = password,
                                         nidFront = nidFrontUri?.toString(),
