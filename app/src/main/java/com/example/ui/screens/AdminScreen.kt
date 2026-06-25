@@ -76,6 +76,7 @@ fun AdminScreen(
     val actionSuccess by viewModel.actionSuccess.collectAsState()
 
     var activeTab by remember { mutableStateOf("NID_PENDING") } // "NID_PENDING", "ALL_USERS", "REPORTS"
+    var selectedUser by remember { mutableStateOf<User?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -204,7 +205,8 @@ fun AdminScreen(
                             items(unverifiedUsers) { user ->
                                 AdminRequestCard(
                                     user = user,
-                                    onVerifyClick = { viewModel.verifyUserNid(user.id) }
+                                    onVerifyClick = { viewModel.verifyUserNid(user.id) },
+                                    onRejectClick = { viewModel.rejectUserNid(user.id) }
                                 )
                             }
                         }
@@ -219,7 +221,7 @@ fun AdminScreen(
                             }
                         } else {
                             items(allRecs) { user ->
-                                AdminUserCard(user = user)
+                                AdminUserCard(user = user, onClick = { selectedUser = user })
                             }
                         }
                     } else {
@@ -253,6 +255,14 @@ fun AdminScreen(
                         }
                     }
                 }
+            }
+
+            // Show Details Dialog if selected
+            selectedUser?.let { user ->
+                AdminUserDetailsDialog(
+                    user = user,
+                    onDismiss = { selectedUser = null }
+                )
             }
         }
     }
@@ -289,6 +299,7 @@ fun AdminSubTab(
 fun AdminRequestCard(
     user: User,
     onVerifyClick: () -> Unit,
+    onRejectClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -396,21 +407,43 @@ fun AdminRequestCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Button(
-                onClick = onVerifyClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("verify_nid_btn_${user.id}"),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
-                shape = RoundedCornerShape(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.AssignmentTurnedIn,
-                    contentDescription = null,
-                    tint = Color.White
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Approve & Mark Verified", color = Color.White, fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = onRejectClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("reject_nid_btn_${user.id}"),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Reject", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onVerifyClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("verify_nid_btn_${user.id}"),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AssignmentTurnedIn,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Approve", color = Color.White, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -566,12 +599,14 @@ fun NidImageBox(
 @Composable
 fun AdminUserCard(
     user: User,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
@@ -620,5 +655,114 @@ fun AdminUserCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun AdminUserDetailsDialog(
+    user: User,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header / Close button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+                
+                // Profile Image / Avatar
+                if (!user.profileImage.isNullOrBlank()) {
+                    AsyncImage(
+                        model = Uri.parse(user.profileImage),
+                        contentDescription = "Profile Image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            user.bloodGroup,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 32.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = user.name,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (user.isVerified) "Verified Donor" else "Unverified User",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (user.isVerified) Color(0xFF2E7D32) else Color(0xFFD32F2F)
+                    )
+                    if (user.isVerified) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF2E7D32),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Details Grid
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AdminDetailRow(label = "Phone", value = user.phone)
+                    AdminDetailRow(label = "Blood Group", value = user.bloodGroup)
+                    if (user.gender.isNotBlank()) AdminDetailRow(label = "Gender", value = user.gender)
+                    if (user.dob.isNotBlank()) AdminDetailRow(label = "Date of Birth", value = user.dob)
+                    AdminDetailRow(label = "Address", value = user.address)
+                    AdminDetailRow(
+                        label = "Availability", 
+                        value = if (user.availability) "Active & Available" else "Offline"
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminDetailRow(label: String, value: String) {
+    Column {
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
     }
 }

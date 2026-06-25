@@ -16,6 +16,8 @@ interface ApiService {
         @Part("phone")       phone:      RequestBody,
         @Part("address")     address:    RequestBody,
         @Part("blood_group") bloodGroup: RequestBody,
+        @Part("gender")      gender:     RequestBody,
+        @Part("dob")         dob:        RequestBody,
         @Part("password")    password:   RequestBody,
         @Part profileImage:  MultipartBody.Part?,
         @Part nidFront:      MultipartBody.Part?,
@@ -75,4 +77,7 @@ interface ApiService {
 
     @PUT("admin/verify/{id}")
     suspend fun verifyUser(@Path("id") id: Int): Response<MessageResponse>
+
+    @DELETE("admin/user/{id}")
+    suspend fun deleteUser(@Path("id") id: Int): Response<MessageResponse>
 }

@@ -66,6 +66,9 @@ fun RequestScreen(
     var bloodGroup by remember { mutableStateOf("O+") }
     var location by remember { mutableStateOf("") }
     var hospitalName by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
+    var genderDropdownExpanded by remember { mutableStateOf(false) }
     var urgencyLevel by remember { mutableStateOf("Urgent") } // "Normal", "Urgent", "Critical"
 
     var dropdownExpanded by remember { mutableStateOf(false) }
@@ -179,6 +182,65 @@ fun RequestScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Gender Selector
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = gender.ifEmpty { "Select Gender" },
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { genderDropdownExpanded = true }
+                            .testTag("req_gender_dropdown"),
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                modifier = Modifier.clickable { genderDropdownExpanded = true }
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        enabled = false,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    DropdownMenu(
+                        expanded = genderDropdownExpanded,
+                        onDismissRequest = { genderDropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.85f)
+                    ) {
+                        listOf("Male", "Female").forEach { g ->
+                            DropdownMenuItem(
+                                text = { Text(g) },
+                                onClick = {
+                                    gender = g
+                                    genderDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Age Input
+                OutlinedTextField(
+                    value = age,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) age = it },
+                    label = { Text("Patient Age") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -297,8 +359,10 @@ fun RequestScreen(
                     onClick = {
                         viewModel.createRequest(
                             bloodGroup = bloodGroup,
+                            gender = gender,
+                            age = age,
                             location = location,
-                            hospitalName = if (hospitalName.isBlank()) null else hospitalName,
+                            hospitalName = if (hospitalName.isBlank()) "" else hospitalName,
                             urgencyLevel = urgencyLevel
                         )
                     },

@@ -579,6 +579,13 @@ fun EmergencyRequestItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
+                    text = "Patient: ${request.gender}, ${request.age} years",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
                     text = request.location,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,

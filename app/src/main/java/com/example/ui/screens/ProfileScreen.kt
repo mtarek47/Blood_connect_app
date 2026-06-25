@@ -190,6 +190,23 @@ fun ProfileScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (!currentUser?.gender.isNullOrBlank()) {
+                Text(
+                    text = "Gender: ${currentUser?.gender}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            if (!currentUser?.dob.isNullOrBlank()) {
+                Text(
+                    text = "DOB: ${currentUser?.dob}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Verified Status Checklist card

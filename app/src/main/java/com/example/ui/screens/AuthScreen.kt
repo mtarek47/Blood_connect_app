@@ -92,13 +92,17 @@ fun AuthScreen(
 
     // Form states
     var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("+880") }
     var division by remember { mutableStateOf("") }
     var zilla by remember { mutableStateOf("") }
     var divisionDropdownExpanded by remember { mutableStateOf(false) }
     var zillaDropdownExpanded by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var bloodGroup by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("") }
+    var dobDay by remember { mutableStateOf("") }
+    var dobMonth by remember { mutableStateOf("") }
+    var dobYear by remember { mutableStateOf("") }
 
     // Real image URIs from camera
     var nidFrontUri by remember { mutableStateOf<Uri?>(null) }
@@ -112,7 +116,16 @@ fun AuthScreen(
 
     var passwordVisible by remember { mutableStateOf(false) }
     var bloodDropdownExpanded by remember { mutableStateOf(false) }
+    var genderDropdownExpanded by remember { mutableStateOf(false) }
+    var dayDropdownExpanded by remember { mutableStateOf(false) }
+    var monthDropdownExpanded by remember { mutableStateOf(false) }
+    var yearDropdownExpanded by remember { mutableStateOf(false) }
     val bloodGroups = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+    val genders = listOf("Male", "Female")
+    val days = (1..31).map { it.toString().padStart(2, '0') }
+    val months = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+    val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+    val years = (currentYear - 70..currentYear - 16).map { it.toString() }.reversed()
 
     // ── Camera launchers ──────────────────────────────────────────────────────
 
@@ -307,7 +320,16 @@ fun AuthScreen(
 
                             OutlinedTextField(
                                 value = phone,
-                                onValueChange = { phone = it },
+                                onValueChange = { 
+                                    if (it.startsWith("+880") && it.length <= 14) {
+                                        val remaining = it.removePrefix("+880")
+                                        if (remaining.all { char -> char.isDigit() }) {
+                                            phone = it
+                                        }
+                                    } else if (it.length < 4) {
+                                        phone = "+880"
+                                    }
+                                },
                                 label = { Text("Phone Number") },
                                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -448,6 +470,107 @@ fun AuthScreen(
                                 }
                             }
 
+                            // Gender Selector dropdown
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = gender.ifEmpty { "Select Gender" },
+                                    label = { Text("Gender") },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { genderDropdownExpanded = true },
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.clickable { genderDropdownExpanded = true }
+                                        )
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                                    ),
+                                    enabled = false,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+
+                                DropdownMenu(
+                                    expanded = genderDropdownExpanded,
+                                    onDismissRequest = { genderDropdownExpanded = false },
+                                    modifier = Modifier.fillMaxWidth(0.85f)
+                                ) {
+                                    genders.forEach { g ->
+                                        DropdownMenuItem(
+                                            text = { Text(g) },
+                                            onClick = {
+                                                gender = g
+                                                genderDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Date of Birth Row
+                            Text("Date of Birth", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onBackground)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                // Day
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(
+                                        value = dobDay.ifEmpty { "Day" },
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        modifier = Modifier.fillMaxWidth().clickable { dayDropdownExpanded = true },
+                                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { dayDropdownExpanded = true }) },
+                                        colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline),
+                                        enabled = false,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    DropdownMenu(expanded = dayDropdownExpanded, onDismissRequest = { dayDropdownExpanded = false }) {
+                                        days.forEach { d ->
+                                            DropdownMenuItem(text = { Text(d) }, onClick = { dobDay = d; dayDropdownExpanded = false })
+                                        }
+                                    }
+                                }
+                                // Month
+                                Box(modifier = Modifier.weight(1.5f)) {
+                                    OutlinedTextField(
+                                        value = dobMonth.ifEmpty { "Month" },
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        modifier = Modifier.fillMaxWidth().clickable { monthDropdownExpanded = true },
+                                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { monthDropdownExpanded = true }) },
+                                        colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline),
+                                        enabled = false,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    DropdownMenu(expanded = monthDropdownExpanded, onDismissRequest = { monthDropdownExpanded = false }) {
+                                        months.forEach { m ->
+                                            DropdownMenuItem(text = { Text(m) }, onClick = { dobMonth = m; monthDropdownExpanded = false })
+                                        }
+                                    }
+                                }
+                                // Year
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(
+                                        value = dobYear.ifEmpty { "Year" },
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        modifier = Modifier.fillMaxWidth().clickable { yearDropdownExpanded = true },
+                                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { yearDropdownExpanded = true }) },
+                                        colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline),
+                                        enabled = false,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    DropdownMenu(expanded = yearDropdownExpanded, onDismissRequest = { yearDropdownExpanded = false }) {
+                                        years.forEach { y ->
+                                            DropdownMenuItem(text = { Text(y) }, onClick = { dobYear = y; yearDropdownExpanded = false })
+                                        }
+                                    }
+                                }
+                            }
+
                             OutlinedTextField(
                                 value = password,
                                 onValueChange = { password = it },
@@ -573,11 +696,15 @@ fun AuthScreen(
 
                             Button(
                                 onClick = {
+                                    val fullAddress = if (division.isNotBlank() && zilla.isNotBlank()) "$zilla, $division" else ""
+                                    val fullDob = if (dobDay.isNotBlank() && dobMonth.isNotBlank() && dobYear.isNotBlank()) "$dobDay $dobMonth $dobYear" else ""
                                     viewModel.register(
                                         name = name,
                                         phone = phone,
-                                        address = if (division.isNotBlank() && zilla.isNotBlank()) "$zilla, $division" else "",
+                                        address = fullAddress,
                                         bloodGroup = bloodGroup,
+                                        gender = gender,
+                                        dob = fullDob,
                                         password = password,
                                         nidFront = nidFrontUri?.toString(),
                                         nidBack = nidBackUri?.toString(),
@@ -619,7 +746,16 @@ fun AuthScreen(
                         ) {
                             OutlinedTextField(
                                 value = phone,
-                                onValueChange = { phone = it },
+                                onValueChange = { 
+                                    if (it.startsWith("+880") && it.length <= 14) {
+                                        val remaining = it.removePrefix("+880")
+                                        if (remaining.all { char -> char.isDigit() }) {
+                                            phone = it
+                                        }
+                                    } else if (it.length < 4) {
+                                        phone = "+880"
+                                    }
+                                },
                                 label = { Text("Phone Number") },
                                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),

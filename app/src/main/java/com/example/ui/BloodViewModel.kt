@@ -203,12 +203,16 @@ class BloodViewModel(
     // ─── Auth ──────────────────────────────────────────────────────────────────
     fun register(
         name: String, phone: String, address: String,
-        bloodGroup: String, password: String,
+        bloodGroup: String, gender: String, dob: String, password: String,
         nidFront: String?, nidBack: String?, profilePhoto: String?
     ) = viewModelScope.launch {
         _authError.value = null
-        if (name.isBlank() || phone.isBlank() || address.isBlank() || password.isBlank() || bloodGroup.isBlank()) {
-            _authError.value = "All key fields including blood group must be completed!"
+        if (name.isBlank() || phone.isBlank() || address.isBlank() || password.isBlank() || bloodGroup.isBlank() || gender.isBlank() || dob.isBlank()) {
+            _authError.value = "All key fields including blood group, gender, and date of birth must be completed!"
+            return@launch
+        }
+        if (phone.length != 14 || !phone.startsWith("+880")) {
+            _authError.value = "Phone number must start with +880 and contain 10 digits."
             return@launch
         }
         if (nidFront.isNullOrBlank() || nidBack.isNullOrBlank() || profilePhoto.isNullOrBlank()) {
@@ -217,7 +221,7 @@ class BloodViewModel(
         }
         _isLoading.value = true
         val result = repository.registerUser(
-            name, phone, address, bloodGroup, password,
+            name, phone, address, bloodGroup, gender, dob, password,
             profilePhoto, nidFront, nidBack
         )
         _isLoading.value = false
@@ -235,6 +239,10 @@ class BloodViewModel(
         _authError.value = null
         if (phone.isBlank() || password.isBlank()) {
             _authError.value = "Please complete phone and password fields."
+            return@launch
+        }
+        if (phone.length != 14 || !phone.startsWith("+880")) {
+            _authError.value = "Phone number must start with +880 and contain 10 digits."
             return@launch
         }
         _isLoading.value = true
@@ -292,26 +300,27 @@ class BloodViewModel(
 
     // ─── Blood Requests ────────────────────────────────────────────────────────
     fun createRequest(
-        bloodGroup: String, location: String,
-        hospitalName: String?, urgencyLevel: String
+        bloodGroup: String, gender: String, age: String, location: String,
+        hospitalName: String, urgencyLevel: String
     ) = viewModelScope.launch {
+        if (bloodGroup.isBlank() || location.isBlank() || urgencyLevel.isBlank() || gender.isBlank() || age.isBlank()) {
+            _actionSuccess.value = "Please fill in all required fields (Blood Group, Gender, Age, Location, Urgency)"
+            return@launch
+        }
         val user = _currentUser.value ?: return@launch
         if (!user.isVerified) {
             _authError.value = "Your ID is not verified yet. Please wait for admin approval to request blood."
             return@launch
         }
-        if (location.isBlank()) {
-            _authError.value = "Please enter request location"
-            return@launch
-        }
         _isLoading.value = true
-        val result = repository.createBloodRequest(bloodGroup, location, hospitalName, urgencyLevel)
+        val result = repository.createBloodRequest(bloodGroup, gender, age, location, hospitalName, urgencyLevel)
         _isLoading.value = false
         result.onSuccess {
             // In-app notification
             val fakeReq = BloodRequest(
                 recipientId = user.id, recipientName = user.name,
                 recipientPhone = user.phone, bloodGroup = bloodGroup,
+                gender = gender, age = age,
                 location = location, hospitalName = hospitalName,
                 urgencyLevel = urgencyLevel, status = "active"
             )
@@ -405,6 +414,15 @@ class BloodViewModel(
             _actionSuccess.value = "NID verified successfully!"
         }.onFailure {
             _authError.value = "Verification failed. Try again."
+        }
+    }
+
+    fun rejectUserNid(userId: Int) = viewModelScope.launch {
+        val result = repository.rejectUserNid(userId)
+        result.onSuccess {
+            _actionSuccess.value = "User deleted successfully."
+        }.onFailure {
+            _authError.value = "Deletion failed. Try again."
         }
     }
 

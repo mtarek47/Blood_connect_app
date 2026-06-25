@@ -42,6 +42,8 @@ class BloodRepository(private val context: Context) {
         phone         = phone,
         address       = address,
         bloodGroup    = bloodGroup,
+        gender        = gender ?: "",
+        dob           = dob ?: "",
         profileImage  = profileImage,
         nidImageFront = nidImageFront,
         nidImageBack  = nidImageBack,
@@ -57,6 +59,8 @@ class BloodRepository(private val context: Context) {
         recipientName  = recipientName,
         recipientPhone = recipientPhone,
         bloodGroup     = bloodGroup,
+        gender         = gender,
+        age            = age,
         location       = location,
         hospitalName   = hospitalName,
         urgencyLevel   = urgencyLevel,
@@ -76,7 +80,7 @@ class BloodRepository(private val context: Context) {
     // ─── Auth ────────────────────────────────────────────────────────────────────
     suspend fun registerUser(
         name: String, phone: String, address: String,
-        bloodGroup: String, password: String,
+        bloodGroup: String, gender: String, dob: String, password: String,
         profileImageUri: String?, nidFrontUri: String?, nidBackUri: String?
     ): Result<User> = withContext(Dispatchers.IO) {
         try {
@@ -94,6 +98,8 @@ class BloodRepository(private val context: Context) {
                 phone      = toBody(phone),
                 address    = toBody(address),
                 bloodGroup = toBody(bloodGroup),
+                gender     = toBody(gender),
+                dob        = toBody(dob),
                 password   = toBody(password),
                 profileImage = toFilePart(profileImageUri, "profile_image"),
                 nidFront     = toFilePart(nidFrontUri,    "nid_image_front"),
@@ -201,12 +207,11 @@ class BloodRepository(private val context: Context) {
     }
 
     suspend fun createBloodRequest(
-        bloodGroup: String, location: String,
-        hospitalName: String?, urgencyLevel: String
+        bloodGroup: String, gender: String, age: String, location: String, hospitalName: String, urgencyLevel: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val response = api.createBloodRequest(
-                BloodRequestBody(bloodGroup, location, hospitalName, urgencyLevel)
+                BloodRequestBody(bloodGroup, gender, age, location, hospitalName.ifBlank { null }, urgencyLevel)
             )
             if (response.isSuccessful) {
                 refreshActiveRequests()
@@ -269,6 +274,17 @@ class BloodRepository(private val context: Context) {
                 refreshUnverifiedUsers()
                 Result.success(Unit)
             } else Result.failure(Exception("Verification failed"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun rejectUserNid(userId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.deleteUser(userId)
+            if (response.isSuccessful) {
+                refreshUnverifiedUsers()
+                refreshAllUsers()
+                Result.success(Unit)
+            } else Result.failure(Exception("Reject failed"))
         } catch (e: Exception) { Result.failure(e) }
     }
 

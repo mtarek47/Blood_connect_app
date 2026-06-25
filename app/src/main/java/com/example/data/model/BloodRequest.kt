@@ -8,6 +8,8 @@ data class BloodRequest(
     val recipientName: String,
     val recipientPhone: String,
     val bloodGroup: String,
+    val gender: String,
+    val age: String,
     val location: String,
     val hospitalName: String? = null,
     val urgencyLevel: String,

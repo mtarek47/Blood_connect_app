@@ -11,6 +11,8 @@ data class UserDto(
     @Json(name = "phone")           val phone: String,
     @Json(name = "address")         val address: String,
     @Json(name = "blood_group")     val bloodGroup: String,
+    @Json(name = "gender")          val gender: String?,
+    @Json(name = "dob")             val dob: String?,
     @Json(name = "profile_image")   val profileImage: String?,
     @Json(name = "nid_image_front") val nidImageFront: String?,
     @Json(name = "nid_image_back")  val nidImageBack: String?,
@@ -35,6 +37,8 @@ data class BloodRequestDto(
     @Json(name = "recipient_name") val recipientName: String,
     @Json(name = "recipient_phone")val recipientPhone: String,
     @Json(name = "blood_group")    val bloodGroup: String,
+    @Json(name = "gender")         val gender: String,
+    @Json(name = "age")            val age: String,
     @Json(name = "location")       val location: String,
     @Json(name = "hospital_name")  val hospitalName: String?,
     @Json(name = "urgency_level")  val urgencyLevel: String,
@@ -65,6 +69,8 @@ data class LoginRequest(
 @JsonClass(generateAdapter = true)
 data class BloodRequestBody(
     @Json(name = "blood_group")    val bloodGroup: String,
+    @Json(name = "gender")         val gender: String,
+    @Json(name = "age")            val age: String,
     @Json(name = "location")       val location: String,
     @Json(name = "hospital_name")  val hospitalName: String?,
     @Json(name = "urgency_level")  val urgencyLevel: String
