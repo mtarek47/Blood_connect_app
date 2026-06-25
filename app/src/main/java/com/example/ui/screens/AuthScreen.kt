@@ -828,15 +828,33 @@ fun AuthScreen(
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text(
-                                        text = "⚡ Developer Details ",
+                                        text = "Blood Connect App ",
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.primary
                                     )
+                                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                                     Text(
-                                        text = "Tarek Parvez \n" +
-                                                "Visit: https://tarekparvez.dev/",
-                                        style = MaterialTheme.typography.bodySmall
+                                        text =  "Version 1.0.0 \n" +
+                                                "Community & Non-Profit Focused.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(bottom = 4.dp)
                                     )
+                                    Row {
+                                        Text(
+                                            text = "Developer details : ",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Text(
+                                            text = "https://tarekparvez.dev/",
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                            ),
+                                            modifier = Modifier.clickable {
+                                                uriHandler.openUri("https://tarekparvez.dev/")
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
