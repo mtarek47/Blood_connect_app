@@ -128,6 +128,19 @@ class BloodRepository(private val context: Context) {
             }
         }
 
+    suspend fun getCurrentUser(): Result<User> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getMe()
+            if (response.isSuccessful) {
+                Result.success(response.body()!!.toUser())
+            } else {
+                Result.failure(Exception("Failed to load user profile"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun logout() = sessionManager.clearSession()
 
     // ─── Users / Donors ──────────────────────────────────────────────────────────

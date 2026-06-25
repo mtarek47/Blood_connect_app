@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PostAdd
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -53,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +70,7 @@ import com.example.ui.ViewModelFactory
 import com.example.ui.screens.AdminScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.NotificationsScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.RequestDetailsScreen
 import com.example.ui.screens.RequestScreen
@@ -158,6 +161,7 @@ fun MainOrchestrator(viewModel: BloodViewModel) {
                     Screen.RequestDetails -> RequestDetailsScreen(viewModel = viewModel)
                     Screen.AdminMode -> AdminScreen(viewModel = viewModel)
                     Screen.Profile -> ProfileScreen(viewModel = viewModel)
+                    Screen.Notifications -> NotificationsScreen(viewModel = viewModel)
                 }
             }
         }
@@ -232,6 +236,40 @@ fun MainOrchestrator(viewModel: BloodViewModel) {
                             .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     )
+                }
+            }
+        }
+
+        // --- Loading Overlay ---
+        val isLoading by viewModel.isLoading.collectAsState()
+        AnimatedVisibility(
+            visible = isLoading,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .pointerInput(Unit) {}, // Consume clicks
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 4.dp,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Please wait...", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }

@@ -88,14 +88,27 @@ class BloodViewModel(
 
     // Auto-login if token exists
     private fun checkExistingSession() = viewModelScope.launch {
+        _isLoading.value = true
         val token = repository.sessionManager.loadToken()
         if (token != null) {
-            // Token আছে — dashboard-এ যাও, data refresh করো
-            navigateTo(Screen.Dashboard)
-            refreshAll()
+            val userResult = repository.getCurrentUser()
+            if (userResult.isSuccess) {
+                _currentUser.value = userResult.getOrNull()
+                navigateTo(Screen.Dashboard)
+                refreshAll()
+                if (_currentUser.value?.isAdmin == true) {
+                    repository.refreshUnverifiedUsers()
+                    repository.refreshAllUsers()
+                }
+            } else {
+                repository.logout()
+                _currentUser.value = null
+                navigateTo(Screen.Login)
+            }
         } else {
             navigateTo(Screen.Login)
         }
+        _isLoading.value = false
     }
 
     private fun refreshAll() = viewModelScope.launch {
@@ -178,12 +191,15 @@ class BloodViewModel(
         }
     }
 
-    fun logout() {
+    fun logout() = viewModelScope.launch {
+        _isLoading.value = true
+        kotlinx.coroutines.delay(800) // Modern loading feel
         repository.logout()
         _currentUser.value = null
         _selectedRequest.value = null
         _notifications.value = emptyList()
         navigateTo(Screen.Login)
+        _isLoading.value = false
     }
 
     // ─── Profile ───────────────────────────────────────────────────────────────
@@ -298,6 +314,7 @@ sealed class Screen {
     object RequestDetails : Screen()
     object AdminMode : Screen()
     object Profile : Screen()
+    object Notifications : Screen()
 }
 
 // ─── In-app notification ───────────────────────────────────────────────────────
