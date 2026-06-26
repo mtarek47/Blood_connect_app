@@ -86,4 +86,17 @@ interface ApiService {
 
     @DELETE("admin/user/{id}")
     suspend fun deleteUser(@Path("id") id: Int): Response<MessageResponse>
+
+    // ─── Password Recovery ────────────────────────────────────────────────────
+    @POST("auth/recovery-request")
+    suspend fun submitRecoveryRequest(@Body req: RecoveryRequestReq): Response<MessageResponse>
+
+    @GET("admin/recovery-requests")
+    suspend fun getRecoveryRequests(): Response<List<RecoveryRequestDto>>
+
+    @POST("admin/recovery-requests/{id}/approve")
+    suspend fun approveRecoveryRequest(@Path("id") id: Int): Response<MessageResponse>
+
+    @POST("admin/recovery-requests/{id}/reject")
+    suspend fun rejectRecoveryRequest(@Path("id") id: Int): Response<MessageResponse>
 }

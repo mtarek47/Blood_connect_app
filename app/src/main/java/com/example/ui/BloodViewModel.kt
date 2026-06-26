@@ -10,6 +10,7 @@ import com.example.data.model.BloodRequest
 import com.example.data.model.Donation
 import com.example.data.model.User
 import com.example.data.repository.BloodRepository
+import com.example.data.remote.dto.RecoveryRequestDto
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -195,6 +196,7 @@ class BloodViewModel(
         if (_currentUser.value?.isAdmin == true) {
             repository.refreshUnverifiedUsers()
             repository.refreshAllUsers()
+            loadRecoveryRequests()
         }
         delay(500) // slight delay for smooth UI
         _isRefreshing.value = false
@@ -494,6 +496,45 @@ class BloodViewModel(
     fun loadAdminData() = viewModelScope.launch {
         repository.refreshUnverifiedUsers()
         repository.refreshAllUsers()
+        loadRecoveryRequests()
+    }
+
+    // ─── Password Recovery ─────────────────────────────────────────────────────
+    private val _recoveryRequests = MutableStateFlow<List<RecoveryRequestDto>>(emptyList())
+    val recoveryRequests: StateFlow<List<RecoveryRequestDto>> = _recoveryRequests.asStateFlow()
+
+    suspend fun submitRecoveryRequest(phone: String, nidNumber: String): Result<String> {
+        _isLoading.value = true
+        val result = repository.submitRecoveryRequest(phone, nidNumber)
+        _isLoading.value = false
+        return result
+    }
+
+    fun loadRecoveryRequests() = viewModelScope.launch {
+        if (_currentUser.value?.isAdmin == true) {
+            val result = repository.getRecoveryRequests()
+            result.onSuccess { _recoveryRequests.value = it }
+        }
+    }
+
+    fun approveRecoveryRequest(id: Int) = viewModelScope.launch {
+        val result = repository.approveRecoveryRequest(id)
+        result.onSuccess {
+            _actionMessage.value = ActionMessage("Approved and reset to 1234", false)
+            loadRecoveryRequests()
+        }.onFailure {
+            _actionMessage.value = ActionMessage(it.message ?: "Failed to approve", true)
+        }
+    }
+
+    fun rejectRecoveryRequest(id: Int) = viewModelScope.launch {
+        val result = repository.rejectRecoveryRequest(id)
+        result.onSuccess {
+            _actionMessage.value = ActionMessage("Request rejected", false)
+            loadRecoveryRequests()
+        }.onFailure {
+            _actionMessage.value = ActionMessage(it.message ?: "Failed to reject", true)
+        }
     }
 
     fun dismissNotification(id: Int) {

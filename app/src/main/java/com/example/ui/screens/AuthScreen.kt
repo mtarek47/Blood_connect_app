@@ -44,8 +44,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -57,7 +60,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Modifier
@@ -92,6 +97,15 @@ fun AuthScreen(
     val context = LocalContext.current
     var isRegisterMode by remember { mutableStateOf(isRegisterModeInitial) }
     val actionMessage by viewModel.actionMessage.collectAsState()
+
+    // Forgot password states
+    var showForgotDialog by remember { mutableStateOf(false) }
+    var forgotPhone by remember { mutableStateOf("+880") }
+    var forgotNid by remember { mutableStateOf("") }
+    var forgotErrorMsg by remember { mutableStateOf<String?>(null) }
+    var forgotSuccessMsg by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
 
     // Form states
     var name by remember { mutableStateOf("") }
@@ -232,6 +246,131 @@ fun AuthScreen(
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+
+    if (showForgotDialog) {
+        Dialog(onDismissRequest = {
+            showForgotDialog = false
+            forgotErrorMsg = null
+            forgotSuccessMsg = null
+        }) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Recover Password",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    if (forgotErrorMsg != null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = forgotErrorMsg ?: "",
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    if (forgotSuccessMsg != null) {
+                        Surface(
+                            color = Color(0xFFE8F5E9),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = forgotSuccessMsg ?: "",
+                                    color = Color(0xFF2E7D32),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = forgotPhone,
+                        onValueChange = { forgotPhone = it },
+                        label = { Text("Phone Number") },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                    )
+
+                    OutlinedTextField(
+                        value = forgotNid,
+                        onValueChange = { forgotNid = it },
+                        label = { Text("NID Number") },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+
+                    Button(
+                        onClick = {
+                            forgotErrorMsg = null
+                            forgotSuccessMsg = null
+                            coroutineScope.launch {
+                                val result = viewModel.submitRecoveryRequest(forgotPhone, forgotNid)
+                                result.onSuccess {
+                                    forgotSuccessMsg = "Your password recovery request has been submitted successfully. An admin will review your request within 24 hours. Once approved, your password will be reset to the default: 1234."
+                                    kotlinx.coroutines.delay(5000)
+                                    showForgotDialog = false
+                                }.onFailure { err ->
+                                    forgotErrorMsg = err.message ?: "User not found or request failed."
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Submit Request")
+                    }
+                    TextButton(onClick = {
+                        showForgotDialog = false
+                        forgotErrorMsg = null
+                        forgotSuccessMsg = null
+                    }) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -922,6 +1061,13 @@ fun AuthScreen(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text("Sign In", fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+
+                            TextButton(
+                                onClick = { showForgotDialog = true },
+                                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
+                            ) {
+                                Text("Forgot Password?", color = MaterialTheme.colorScheme.primary)
                             }
 
                             Row(

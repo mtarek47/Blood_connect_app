@@ -83,10 +83,15 @@ fun AdminScreen(
     val allRecs by viewModel.allUsers.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
 
-    var activeTab by remember { mutableStateOf("NID_PENDING") } // "NID_PENDING", "ALL_USERS", "REPORTS"
+    var activeTab by remember { mutableStateOf("NID_PENDING") } // "NID_PENDING", "ALL_USERS", "REPORTS", "RECOVERY_REQUESTS"
     var selectedUser by remember { mutableStateOf<User?>(null) }
     
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val recoveryRequests by viewModel.recoveryRequests.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAdminData()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -157,24 +162,24 @@ fun AdminScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     AdminSubTab(
-                        label = "NID Review (${unverifiedUsers.size})",
+                        label = "NID (${unverifiedUsers.size})",
                         isSelected = activeTab == "NID_PENDING",
                         tag = "nid_tab",
                         onClick = { activeTab = "NID_PENDING" },
                         modifier = Modifier.weight(1f)
                     )
                     AdminSubTab(
-                        label = "Donors DB (${allRecs.size})",
+                        label = "Donors (${allRecs.size})",
                         isSelected = activeTab == "ALL_USERS",
                         tag = "users_tab",
                         onClick = { activeTab = "ALL_USERS" },
                         modifier = Modifier.weight(1f)
                     )
                     AdminSubTab(
-                        label = "Reports (0)",
-                        isSelected = activeTab == "REPORTS",
-                        tag = "reports_tab",
-                        onClick = { activeTab = "REPORTS" },
+                        label = "Recovery (${recoveryRequests.filter { it.status == "pending" }.size})",
+                        isSelected = activeTab == "RECOVERY_REQUESTS",
+                        tag = "recovery_tab",
+                        onClick = { activeTab = "RECOVERY_REQUESTS" },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -236,6 +241,75 @@ fun AdminScreen(
                         } else {
                             items(allRecs) { user ->
                                 AdminUserCard(user = user, onClick = { selectedUser = user })
+                            }
+                        }
+                    } else if (activeTab == "RECOVERY_REQUESTS") {
+                        val pendingRequests = recoveryRequests.filter { it.status == "pending" }
+                        if (pendingRequests.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "No pending recovery requests.",
+                                    modifier = Modifier.padding(24.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            items(pendingRequests) { req ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text("Phone: ${req.phone}", fontWeight = FontWeight.Bold)
+                                        Text("NID: ${req.nidNumber}")
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        req.user?.let { u ->
+                                            Text("Registered Name: ${u.name ?: "Unknown"}", style = MaterialTheme.typography.bodySmall)
+                                            Spacer(modifier = Modifier.height(8.dp))
+
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                NidImageBox(
+                                                    uri = u.nidImageFront,
+                                                    label = "Front NID",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                NidImageBox(
+                                                    uri = u.nidImageBack,
+                                                    label = "Back NID",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Button(
+                                                onClick = { viewModel.rejectRecoveryRequest(req.id) },
+                                                modifier = Modifier.weight(1f),
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("Reject", color = Color.White)
+                                            }
+                                            Button(
+                                                onClick = { viewModel.approveRecoveryRequest(req.id) },
+                                                modifier = Modifier.weight(1f),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("Approve & Reset", color = Color.White)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     } else {

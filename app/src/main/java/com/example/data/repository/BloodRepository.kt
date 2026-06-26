@@ -307,6 +307,39 @@ class BloodRepository(private val context: Context) {
         } catch (e: Exception) { Result.failure(e) }
     }
 
+    // ─── Password Recovery ───────────────────────────────────────────────────────
+    suspend fun submitRecoveryRequest(phone: String, nidNumber: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.submitRecoveryRequest(RecoveryRequestReq(phone, nidNumber))
+            if (response.isSuccessful) Result.success(response.body()?.message ?: "Submitted")
+            else Result.failure(Exception(response.errorBody()?.string() ?: "Failed to submit request"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getRecoveryRequests(): Result<List<RecoveryRequestDto>> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getRecoveryRequests()
+            if (response.isSuccessful) Result.success(response.body() ?: emptyList())
+            else Result.failure(Exception("Failed to load recovery requests"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun approveRecoveryRequest(id: Int): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.approveRecoveryRequest(id)
+            if (response.isSuccessful) Result.success(response.body()?.message ?: "Approved")
+            else Result.failure(Exception(response.errorBody()?.string() ?: "Failed to approve"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun rejectRecoveryRequest(id: Int): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.rejectRecoveryRequest(id)
+            if (response.isSuccessful) Result.success(response.body()?.message ?: "Rejected")
+            else Result.failure(Exception(response.errorBody()?.string() ?: "Failed to reject"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────────
     // URI (content://) → temp File (Retrofit multipart জন্য)
     private fun uriToTempFile(uri: Uri): File? {

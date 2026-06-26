@@ -98,3 +98,28 @@ data class DonationRequest(
 data class MessageResponse(
     @Json(name = "message") val message: String
 )
+
+// ─── Password Recovery DTOs ───────────────────────────────────────────────────
+@JsonClass(generateAdapter = true)
+data class RecoveryRequestReq(
+    @Json(name = "phone")     val phone: String,
+    @Json(name = "nidNumber") val nidNumber: String
+)
+
+@JsonClass(generateAdapter = true)
+data class RecoveryUserDto(
+    @Json(name = "name")            val name: String?,
+    @Json(name = "profile_image")   val profileImage: String?,
+    @Json(name = "nid_image_front") val nidImageFront: String?,
+    @Json(name = "nid_image_back")  val nidImageBack: String?
+)
+
+@JsonClass(generateAdapter = true)
+data class RecoveryRequestDto(
+    @Json(name = "id")         val id: Int,
+    @Json(name = "phone")      val phone: String,
+    @Json(name = "nid_number") val nidNumber: String,
+    @Json(name = "status")     val status: String,
+    @Json(name = "created_at") val createdAt: String?,
+    @Json(name = "User")       val user: RecoveryUserDto?
+)
