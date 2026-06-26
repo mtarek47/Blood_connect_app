@@ -53,6 +53,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +77,7 @@ import coil.compose.AsyncImage
 import com.example.ui.BloodViewModel
 import com.example.ui.Screen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     viewModel: BloodViewModel,
@@ -84,6 +87,7 @@ fun ProfileScreen(
     val actionSuccess by viewModel.actionSuccess.collectAsState()
     val isAdmin by viewModel.isAdminUser.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     var editDivision by remember { mutableStateOf("") }
     var editZilla by remember { mutableStateOf("") }
@@ -114,7 +118,9 @@ fun ProfileScreen(
         uri?.let { viewModel.updateProfileImage(it) }
     }
 
-    Box(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.refreshAllManual() },
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)

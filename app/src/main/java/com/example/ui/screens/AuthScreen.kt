@@ -525,6 +525,7 @@ fun AuthScreen(
                                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { dayDropdownExpanded = true }) },
                                         colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline),
                                         enabled = false,
+                                        singleLine = true,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     DropdownMenu(expanded = dayDropdownExpanded, onDismissRequest = { dayDropdownExpanded = false }) {
@@ -543,6 +544,7 @@ fun AuthScreen(
                                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { monthDropdownExpanded = true }) },
                                         colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline),
                                         enabled = false,
+                                        singleLine = true,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     DropdownMenu(expanded = monthDropdownExpanded, onDismissRequest = { monthDropdownExpanded = false }) {
@@ -561,6 +563,7 @@ fun AuthScreen(
                                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { yearDropdownExpanded = true }) },
                                         colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline),
                                         enabled = false,
+                                        singleLine = true,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     DropdownMenu(expanded = yearDropdownExpanded, onDismissRequest = { yearDropdownExpanded = false }) {

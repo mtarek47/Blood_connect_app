@@ -43,8 +43,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +73,7 @@ import com.example.data.model.User
 import com.example.ui.BloodViewModel
 import com.example.ui.Screen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminScreen(
     viewModel: BloodViewModel,
@@ -77,6 +85,8 @@ fun AdminScreen(
 
     var activeTab by remember { mutableStateOf("NID_PENDING") } // "NID_PENDING", "ALL_USERS", "REPORTS"
     var selectedUser by remember { mutableStateOf<User?>(null) }
+    
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -109,7 +119,9 @@ fun AdminScreen(
             }
         }
     ) { innerPadding ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshAllManual() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)

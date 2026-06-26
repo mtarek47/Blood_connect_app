@@ -45,6 +45,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -91,10 +93,13 @@ fun DashboardScreen(
     val notifications by viewModel.notifications.collectAsState()
     val actionSuccess by viewModel.actionSuccess.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     val groups = listOf("All", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
 
-    Box(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.refreshAllManual() },
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -396,8 +401,6 @@ fun DashboardScreen(
                 }
             }
         }
-
-        // Floating Action Button moved to BottomNavigationBar
     }
 }
 

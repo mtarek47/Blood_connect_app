@@ -58,7 +58,10 @@ class BloodViewModel(
 
     // Loading state
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     // In-app notifications
     private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
@@ -137,6 +140,20 @@ class BloodViewModel(
             if (firstLoad) {
                 firstLoad = false
                 oldRequests = newRequests
+                
+                // Populate initial notifications from existing active requests
+                val initialNotifications = newRequests
+                    .filter { it.recipientId != _currentUser.value?.id }
+                    .map { req ->
+                        AppNotification(
+                            id = req.id,
+                            title = "EMERGENCY - ${req.bloodGroup} Blood Required!",
+                            message = "${req.recipientName} needs blood at ${req.location}. Urgency: ${req.urgencyLevel}.",
+                            bloodGroup = req.bloodGroup,
+                            request = req
+                        )
+                    }
+                _notifications.value = initialNotifications
                 return@collect
             }
             
@@ -167,6 +184,17 @@ class BloodViewModel(
     private fun refreshAll() = viewModelScope.launch {
         repository.refreshActiveRequests()
         refreshDonors(_searchedBloodGroup.value)
+    }
+
+    fun refreshAllManual() = viewModelScope.launch {
+        _isRefreshing.value = true
+        refreshAll()
+        if (_currentUser.value?.isAdmin == true) {
+            repository.refreshUnverifiedUsers()
+            repository.refreshAllUsers()
+        }
+        delay(500) // slight delay for smooth UI
+        _isRefreshing.value = false
     }
 
     fun navigateTo(screen: Screen) {

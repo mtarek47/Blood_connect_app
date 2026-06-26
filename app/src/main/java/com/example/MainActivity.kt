@@ -133,6 +133,17 @@ fun MainOrchestrator(viewModel: BloodViewModel) {
         }
     }
 
+    LaunchedEffect(currentUser) {
+        currentUser?.let { user ->
+            FirebaseMessaging.getInstance().subscribeToTopic("user_${user.id}")
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.d("FCM", "Subscribed to user_${user.id} topic")
+                    }
+                }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         val showBottomBar = currentScreen != Screen.Splash &&
                 currentScreen != Screen.Login &&

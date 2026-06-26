@@ -32,7 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,11 +47,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.net.Uri
 import com.example.data.model.BloodRequest
 import com.example.data.model.Donation
 import com.example.ui.theme.PolishPrimary
@@ -67,6 +70,7 @@ fun RequestDetailsScreen(
     val request by viewModel.selectedRequest.collectAsState()
     val responses by viewModel.currentRequestResponses.collectAsState()
     val actionSuccess by viewModel.actionSuccess.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -214,7 +218,7 @@ fun RequestDetailsScreen(
                             }
 
                             Spacer(modifier = Modifier.height(20.dp))
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
                             Spacer(modifier = Modifier.height(16.dp))
 
                             // Delivery location coordinates
@@ -355,7 +359,12 @@ fun RequestDetailsScreen(
                                     Spacer(modifier = Modifier.height(16.dp))
 
                                     Button(
-                                        onClick = { /* Call simulation trigger */ },
+                                        onClick = { 
+                                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = Uri.parse("tel:${req.recipientPhone}")
+                                            }
+                                            context.startActivity(intent)
+                                        },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.fillMaxWidth()
@@ -423,6 +432,7 @@ fun DonationResponseCard(
     response: Donation,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -465,7 +475,12 @@ fun DonationResponseCard(
             }
 
             IconButton(
-                onClick = { /* Simulate call */ },
+                onClick = { 
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:${response.donorPhone}")
+                    }
+                    context.startActivity(intent)
+                },
                 modifier = Modifier
                     .background(Color(0xFF2E7D32).copy(alpha = 0.1f), CircleShape)
                     .size(36.dp)
