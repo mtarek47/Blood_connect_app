@@ -61,7 +61,7 @@ fun RequestScreen(
     viewModel: BloodViewModel,
     modifier: Modifier = Modifier
 ) {
-    val authError by viewModel.authError.collectAsState()
+    val actionMessage by viewModel.actionMessage.collectAsState()
 
     var bloodGroup by remember { mutableStateOf("O+") }
     var location by remember { mutableStateOf("") }
@@ -127,15 +127,17 @@ fun RequestScreen(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                 )
 
-                if (authError != null) {
+                if (actionMessage != null) {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (actionMessage?.isError == true) MaterialTheme.colorScheme.errorContainer else Color(0xFFE8F5E9)
+                        ),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                     ) {
                         Text(
-                            text = authError ?: "",
+                            text = actionMessage?.message ?: "",
                             modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = if (actionMessage?.isError == true) MaterialTheme.colorScheme.onErrorContainer else Color(0xFF2E7D32)
                         )
                     }
                 }

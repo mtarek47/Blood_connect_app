@@ -91,7 +91,7 @@ fun DashboardScreen(
     val searchedGroup by viewModel.searchedBloodGroup.collectAsState()
     val activeRequests by viewModel.activeRequests.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
-    val actionSuccess by viewModel.actionSuccess.collectAsState()
+    val actionMessage by viewModel.actionMessage.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
@@ -113,18 +113,20 @@ fun DashboardScreen(
             )
 
             // Top Status Message Indicator
-            AnimatedVisibility(visible = actionSuccess != null) {
+            AnimatedVisibility(visible = actionMessage != null) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (actionMessage?.isError == true) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = actionSuccess ?: "",
+                        text = actionMessage?.message ?: "",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = if (actionMessage?.isError == true) Color(0xFFC62828) else Color(0xFF2E7D32),
                         modifier = Modifier.padding(12.dp)
                     )
                 }

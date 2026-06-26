@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -57,6 +59,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -88,7 +91,7 @@ fun AuthScreen(
 ) {
     val context = LocalContext.current
     var isRegisterMode by remember { mutableStateOf(isRegisterModeInitial) }
-    val authError by viewModel.authError.collectAsState()
+    val actionMessage by viewModel.actionMessage.collectAsState()
 
     // Form states
     var name by remember { mutableStateOf("") }
@@ -159,6 +162,19 @@ fun AuthScreen(
     // ── Camera permission launcher ────────────────────────────────────────────
     // কোন button press হয়েছে তা track করার জন্য
     var pendingCameraAction by remember { mutableStateOf("") }
+    
+    // ── Gallery launchers ──────────────────────────────────────────────────────
+    val nidFrontGalleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) nidFrontUri = uri
+    }
+    val nidBackGalleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) nidBackUri = uri
+    }
+    val profileGalleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) profileUri = uri
+    }
+    
+    var imageSourceAction by remember { mutableStateOf("") }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -221,6 +237,104 @@ fun AuthScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             if (isRegisterMode) {
+                if (imageSourceAction.isNotEmpty()) {
+                    Dialog(onDismissRequest = { imageSourceAction = "" }) {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(24.dp)
+                                    .fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Select Image Source",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    // Camera Option
+                                    Card(
+                                        modifier = Modifier
+                                            .size(120.dp)
+                                            .clickable {
+                                                val action = imageSourceAction
+                                                imageSourceAction = ""
+                                                launchCamera(action)
+                                            },
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                                        shape = RoundedCornerShape(16.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxSize(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PhotoCamera,
+                                                contentDescription = "Camera",
+                                                modifier = Modifier.size(40.dp),
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                "Camera",
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Gallery Option
+                                    Card(
+                                        modifier = Modifier
+                                            .size(120.dp)
+                                            .clickable {
+                                                val action = imageSourceAction
+                                                imageSourceAction = ""
+                                                when (action) {
+                                                    "nid_front" -> nidFrontGalleryLauncher.launch("image/*")
+                                                    "nid_back" -> nidBackGalleryLauncher.launch("image/*")
+                                                    "profile" -> profileGalleryLauncher.launch("image/*")
+                                                }
+                                            },
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                                        shape = RoundedCornerShape(16.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxSize(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Image,
+                                                contentDescription = "Gallery",
+                                                modifier = Modifier.size(40.dp),
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                "Gallery",
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -281,18 +395,20 @@ fun AuthScreen(
                 }
 
                 // Error Banner
-                AnimatedVisibility(visible = authError != null) {
+                AnimatedVisibility(visible = actionMessage != null) {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (actionMessage?.isError == true) MaterialTheme.colorScheme.errorContainer else Color(0xFFE8F5E9)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = authError ?: "",
+                            text = actionMessage?.message ?: "",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            color = if (actionMessage?.isError == true) MaterialTheme.colorScheme.onErrorContainer else Color(0xFF2E7D32),
                             modifier = Modifier.padding(16.dp),
                             textAlign = TextAlign.Center
                         )
@@ -611,7 +727,7 @@ fun AuthScreen(
                                 Card(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clickable { launchCamera("nid_front") }
+                                        .clickable { imageSourceAction = "nid_front" }
                                         .testTag("attach_nid_front_btn"),
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (nidFrontUri != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
@@ -640,7 +756,7 @@ fun AuthScreen(
                                 Card(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clickable { launchCamera("nid_back") }
+                                        .clickable { imageSourceAction = "nid_back" }
                                         .testTag("attach_nid_back_btn"),
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (nidBackUri != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
@@ -670,7 +786,7 @@ fun AuthScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { launchCamera("profile") }
+                                    .clickable { imageSourceAction = "profile" }
                                     .testTag("attach_profile_btn"),
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (profileUri != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant

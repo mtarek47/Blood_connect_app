@@ -230,6 +230,25 @@ class BloodRepository(private val context: Context) {
         } catch (e: Exception) { Result.failure(e) }
     }
 
+    suspend fun deleteBloodRequest(requestId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.deleteBloodRequest(requestId)
+            if (response.isSuccessful) {
+                refreshActiveRequests()
+                Result.success(Unit)
+            } else Result.failure(Exception("Failed to cancel request"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun ignoreRequest(requestId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.ignoreRequest(requestId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else Result.failure(Exception("Failed to ignore request"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
     // ─── Donations ───────────────────────────────────────────────────────────────
     suspend fun respondToRequest(requestId: Int): Result<Unit> = withContext(Dispatchers.IO) {
         try {

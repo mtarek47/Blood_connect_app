@@ -50,11 +50,8 @@ class BloodViewModel(
     val searchedBloodGroup: StateFlow<String> = _searchedBloodGroup.asStateFlow()
 
     // UI Feedback
-    private val _authError = MutableStateFlow<String?>(null)
-    val authError: StateFlow<String?> = _authError.asStateFlow()
-
-    private val _actionSuccess = MutableStateFlow<String?>(null)
-    val actionSuccess: StateFlow<String?> = _actionSuccess.asStateFlow()
+    private val _actionMessage = MutableStateFlow<ActionMessage?>(null)
+    val actionMessage: StateFlow<ActionMessage?> = _actionMessage.asStateFlow()
 
     // Loading state
     private val _isLoading = MutableStateFlow(false)
@@ -129,6 +126,12 @@ class BloodViewModel(
                     currentScreen.value != Screen.Register) {
                     repository.refreshActiveRequests()
                     refreshDonors(_searchedBloodGroup.value)
+                    
+                    if (currentScreen.value == Screen.RequestDetails) {
+                        _selectedRequest.value?.id?.let {
+                            loadDonationsForRequest(it)
+                        }
+                    }
                 }
             }
         }
@@ -199,8 +202,7 @@ class BloodViewModel(
 
     fun navigateTo(screen: Screen) {
         _currentScreen.value = screen
-        _authError.value = null
-        _actionSuccess.value = null
+        _actionMessage.value = null
     }
 
     fun selectRequest(request: BloodRequest) {
@@ -234,17 +236,17 @@ class BloodViewModel(
         bloodGroup: String, gender: String, dob: String, password: String,
         nidFront: String?, nidBack: String?, profilePhoto: String?
     ) = viewModelScope.launch {
-        _authError.value = null
+        _actionMessage.value = null
         if (name.isBlank() || phone.isBlank() || address.isBlank() || password.isBlank() || bloodGroup.isBlank() || gender.isBlank() || dob.isBlank()) {
-            _authError.value = "All key fields including blood group, gender, and date of birth must be completed!"
+            _actionMessage.value = ActionMessage("All key fields including blood group, gender, and date of birth must be completed!", true)
             return@launch
         }
         if (phone.length != 14 || !phone.startsWith("+880")) {
-            _authError.value = "Phone number must start with +880 and contain 10 digits."
+            _actionMessage.value = ActionMessage("Phone number must start with +880 and contain 10 digits.", true)
             return@launch
         }
         if (nidFront.isNullOrBlank() || nidBack.isNullOrBlank() || profilePhoto.isNullOrBlank()) {
-            _authError.value = "You must provide your NID (Front & Back) and a Profile Picture!"
+            _actionMessage.value = ActionMessage("You must provide your NID (Front & Back) and a Profile Picture!", true)
             return@launch
         }
         _isLoading.value = true
@@ -255,22 +257,22 @@ class BloodViewModel(
         _isLoading.value = false
         result.onSuccess { user ->
             _currentUser.value = user
-            _actionSuccess.value = "Registration successful! NID pending verification."
+            _actionMessage.value = ActionMessage("Registration successful! NID pending verification.", false)
             refreshAll()
             navigateTo(Screen.Dashboard)
         }.onFailure { err ->
-            _authError.value = err.message ?: "Registration failed."
+            _actionMessage.value = ActionMessage(err.message ?: "Registration failed.", true)
         }
     }
 
     fun login(phone: String, password: String) = viewModelScope.launch {
-        _authError.value = null
+        _actionMessage.value = null
         if (phone.isBlank() || password.isBlank()) {
-            _authError.value = "Please complete phone and password fields."
+            _actionMessage.value = ActionMessage("Please complete phone and password fields.", true)
             return@launch
         }
         if (phone.length != 14 || !phone.startsWith("+880")) {
-            _authError.value = "Phone number must start with +880 and contain 10 digits."
+            _actionMessage.value = ActionMessage("Phone number must start with +880 and contain 10 digits.", true)
             return@launch
         }
         _isLoading.value = true
@@ -278,7 +280,7 @@ class BloodViewModel(
         _isLoading.value = false
         result.onSuccess { user ->
             _currentUser.value = user
-            _actionSuccess.value = "Welcome back, ${user.name}!"
+            _actionMessage.value = ActionMessage("Welcome back, ${user.name}!", false)
             refreshAll()
             if (user.isAdmin) {
                 repository.refreshUnverifiedUsers()
@@ -286,7 +288,7 @@ class BloodViewModel(
             }
             navigateTo(Screen.Dashboard)
         }.onFailure { err ->
-            _authError.value = err.message ?: "Authentication failed."
+            _actionMessage.value = ActionMessage(err.message ?: "Authentication failed.", true)
         }
     }
 
@@ -305,14 +307,14 @@ class BloodViewModel(
     fun toggleAvailability() = viewModelScope.launch {
         val user = _currentUser.value ?: return@launch
         if (!user.isVerified) {
-            _authError.value = "Your ID is not verified yet. Please wait for admin approval to become an active donor."
+            _actionMessage.value = ActionMessage("Your ID is not verified yet. Please wait for admin approval to become an active donor.", true)
             return@launch
         }
         val newAvailability = !user.availability
         val result = repository.updateUser(availability = newAvailability)
         result.onSuccess {
             _currentUser.value = user.copy(availability = newAvailability)
-            _actionSuccess.value = "Availability updated successfully!"
+            _actionMessage.value = ActionMessage("Availability updated successfully!", false)
         }
     }
 
@@ -322,7 +324,7 @@ class BloodViewModel(
         val result = repository.updateUser(address = newAddress)
         result.onSuccess {
             _currentUser.value = user.copy(address = newAddress)
-            _actionSuccess.value = "Address updated!"
+            _actionMessage.value = ActionMessage("Address updated!", false)
         }
     }
 
@@ -332,12 +334,12 @@ class BloodViewModel(
         hospitalName: String, urgencyLevel: String
     ) = viewModelScope.launch {
         if (bloodGroup.isBlank() || location.isBlank() || urgencyLevel.isBlank() || gender.isBlank() || age.isBlank()) {
-            _actionSuccess.value = "Please fill in all required fields (Blood Group, Gender, Age, Location, Urgency)"
+            _actionMessage.value = ActionMessage("Please fill in all required fields (Blood Group, Gender, Age, Location, Urgency)", true)
             return@launch
         }
         val user = _currentUser.value ?: return@launch
         if (!user.isVerified) {
-            _authError.value = "Your ID is not verified yet. Please wait for admin approval to request blood."
+            _actionMessage.value = ActionMessage("Your ID is not verified yet. Please wait for admin approval to request blood.", true)
             return@launch
         }
         _isLoading.value = true
@@ -364,17 +366,28 @@ class BloodViewModel(
             _notifications.value = list
             _newNotificationAlert.emit(notification)
 
-            _actionSuccess.value = "Emergency request published!"
+            _actionMessage.value = ActionMessage("Emergency request published!", false)
             navigateTo(Screen.Dashboard)
         }.onFailure {
-            _authError.value = "Failed to create request. Check your connection."
+            _actionMessage.value = ActionMessage("Failed to create request. Check your connection.", true)
         }
     }
 
     fun completeRequest(request: BloodRequest) = viewModelScope.launch {
         val result = repository.completeRequest(request.id)
         result.onSuccess {
-            _actionSuccess.value = "Request marked as completed!"
+            _actionMessage.value = ActionMessage("Request marked as completed!", false)
+        }
+    }
+
+    fun cancelRequest(request: BloodRequest) = viewModelScope.launch {
+        val result = repository.deleteBloodRequest(request.id)
+        result.onSuccess {
+            _actionMessage.value = ActionMessage("Request cancelled successfully.", false)
+            repository.refreshActiveRequests()
+            navigateTo(Screen.Dashboard)
+        }.onFailure {
+            _actionMessage.value = ActionMessage("Failed to cancel request.", true)
         }
     }
 
@@ -384,13 +397,13 @@ class BloodViewModel(
             val result = repository.changePassword(oldPass, newPass)
             _isLoading.value = false
             if (result.isSuccess) {
-                _actionSuccess.value = "Password changed successfully"
+                _actionMessage.value = ActionMessage("Password changed successfully", false)
                 delay(3000)
-                _actionSuccess.value = null
+                _actionMessage.value = null
             } else {
-                _actionSuccess.value = "Failed to change password"
+                _actionMessage.value = ActionMessage("Failed to change password", true)
                 delay(3000)
-                _actionSuccess.value = null
+                _actionMessage.value = null
             }
         }
     }
@@ -403,14 +416,14 @@ class BloodViewModel(
                 // Refresh the current user to get the new profile picture URL
                 repository.getCurrentUser().onSuccess { user ->
                     _currentUser.value = user
-                    _actionSuccess.value = "Profile picture updated!"
+                    _actionMessage.value = ActionMessage("Profile picture updated!", false)
                 }
             } else {
-                _actionSuccess.value = "Failed to update profile picture"
+                _actionMessage.value = ActionMessage("Failed to update profile picture", true)
             }
             _isLoading.value = false
             delay(3000)
-            _actionSuccess.value = null
+            _actionMessage.value = null
         }
     }
 
@@ -419,19 +432,43 @@ class BloodViewModel(
     fun respondToRequest(request: BloodRequest, isAccepted: Boolean) = viewModelScope.launch {
         val user = _currentUser.value ?: return@launch
         if (!user.isVerified && isAccepted) {
-            _authError.value = "Your ID is not verified yet. Please wait for admin approval to donate blood."
+            _actionMessage.value = ActionMessage("Your ID is not verified yet. Please wait for admin approval to donate blood.", true)
             return@launch
         }
         
         if (isAccepted) {
+            // Optimistic update
+            val fakeDonation = Donation(
+                id = -1,
+                donorId = user.id,
+                donorName = user.name,
+                donorPhone = user.phone,
+                donorProfileImage = user.profileImage,
+                requestId = request.id,
+                status = "accepted",
+                timestamp = System.currentTimeMillis()
+            )
+            _currentRequestResponses.value = listOf(fakeDonation) + _currentRequestResponses.value
+            
             val result = repository.respondToRequest(request.id)
             result.onSuccess {
-                _actionSuccess.value = "Thank you! Contact details shared with ${request.recipientName}."
+                _actionMessage.value = ActionMessage("Thank you! Contact details shared with ${request.recipientName}.", false)
+                loadDonationsForRequest(request.id)
             }.onFailure {
-                _authError.value = "Could not respond. Try again."
+                // Remove optimistic update on failure
+                _currentRequestResponses.value = _currentRequestResponses.value.filter { it.id != -1 }
+                _actionMessage.value = ActionMessage("Could not respond. Try again.", true)
             }
         } else {
-            _actionSuccess.value = "Request ignored."
+            // Ignore request
+            val result = repository.ignoreRequest(request.id)
+            result.onSuccess {
+                _actionMessage.value = ActionMessage("Request ignored.", false)
+                repository.refreshActiveRequests()
+                navigateTo(Screen.Dashboard)
+            }.onFailure {
+                _actionMessage.value = ActionMessage("Could not ignore request. Try again.", true)
+            }
         }
     }
 
@@ -439,18 +476,18 @@ class BloodViewModel(
     fun verifyUserNid(userId: Int) = viewModelScope.launch {
         val result = repository.verifyUserNid(userId)
         result.onSuccess {
-            _actionSuccess.value = "NID verified successfully!"
+            _actionMessage.value = ActionMessage("NID verified successfully!", false)
         }.onFailure {
-            _authError.value = "Verification failed. Try again."
+            _actionMessage.value = ActionMessage("Verification failed. Try again.", true)
         }
     }
 
     fun rejectUserNid(userId: Int) = viewModelScope.launch {
         val result = repository.rejectUserNid(userId)
         result.onSuccess {
-            _actionSuccess.value = "User deleted successfully."
+            _actionMessage.value = ActionMessage("User deleted successfully.", false)
         }.onFailure {
-            _authError.value = "Deletion failed. Try again."
+            _actionMessage.value = ActionMessage("Deletion failed. Try again.", true)
         }
     }
 

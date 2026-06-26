@@ -84,7 +84,7 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
-    val actionSuccess by viewModel.actionSuccess.collectAsState()
+    val actionMessage by viewModel.actionMessage.collectAsState()
     val isAdmin by viewModel.isAdminUser.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -252,17 +252,19 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Action feedback banner
-            if (actionSuccess != null) {
+            if (actionMessage != null) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (actionMessage?.isError == true) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp)
                 ) {
                     Text(
-                        text = actionSuccess ?: "",
+                        text = actionMessage?.message ?: "",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = if (actionMessage?.isError == true) Color(0xFFC62828) else Color(0xFF2E7D32),
                         modifier = Modifier.padding(12.dp)
                     )
                 }

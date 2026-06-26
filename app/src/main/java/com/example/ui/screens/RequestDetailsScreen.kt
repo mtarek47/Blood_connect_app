@@ -69,7 +69,7 @@ fun RequestDetailsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val request by viewModel.selectedRequest.collectAsState()
     val responses by viewModel.currentRequestResponses.collectAsState()
-    val actionSuccess by viewModel.actionSuccess.collectAsState()
+    val actionMessage by viewModel.actionMessage.collectAsState()
     val context = LocalContext.current
 
     Scaffold(
@@ -121,18 +121,20 @@ fun RequestDetailsScreen(
                         .padding(24.dp)
                 ) {
                     // Success Flash Box
-                    AnimatedVisibility(visible = actionSuccess != null) {
+                    AnimatedVisibility(visible = actionMessage != null) {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (actionMessage?.isError == true) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 16.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = actionSuccess ?: "",
+                                text = actionMessage?.message ?: "",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = if (actionMessage?.isError == true) Color(0xFFC62828) else Color(0xFF2E7D32),
                                 modifier = Modifier.padding(12.dp),
                                 textAlign = TextAlign.Center
                             )
@@ -315,6 +317,18 @@ fun RequestDetailsScreen(
                             ) {
                                 Text("Mark request as COMPLETED", fontWeight = FontWeight.Bold, color = Color.White)
                             }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedButton(
+                                onClick = { viewModel.cancelRequest(req) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Cancel Request", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                            }
                         }
                     } else {
                         // Viewing user is a potential donor
@@ -361,7 +375,7 @@ fun RequestDetailsScreen(
                                     Button(
                                         onClick = { 
                                             val intent = Intent(Intent.ACTION_DIAL).apply {
-                                                data = Uri.parse("tel:${req.recipientPhone}")
+                                                data = Uri.parse("tel:${req.recipientPhone.replace(" ", "")}")
                                             }
                                             context.startActivity(intent)
                                         },
@@ -477,7 +491,7 @@ fun DonationResponseCard(
             IconButton(
                 onClick = { 
                     val intent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:${response.donorPhone}")
+                        data = Uri.parse("tel:${response.donorPhone.replace(" ", "")}")
                     }
                     context.startActivity(intent)
                 },

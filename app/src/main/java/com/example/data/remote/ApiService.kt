@@ -59,6 +59,12 @@ interface ApiService {
     @PUT("blood-requests/{id}/complete")
     suspend fun completeRequest(@Path("id") id: Int): Response<MessageResponse>
 
+    @DELETE("blood-requests/{id}")
+    suspend fun deleteBloodRequest(@Path("id") id: Int): Response<MessageResponse>
+
+    @POST("blood-requests/{id}/ignore")
+    suspend fun ignoreRequest(@Path("id") id: Int): Response<MessageResponse>
+
     // ─── Donations ────────────────────────────────────────────────────────────
     @POST("donations")
     suspend fun respondToRequest(@Body body: DonationRequest): Response<MessageResponse>

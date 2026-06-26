@@ -81,7 +81,7 @@ fun AdminScreen(
 ) {
     val unverifiedUsers by viewModel.unverifiedUsers.collectAsState()
     val allRecs by viewModel.allUsers.collectAsState()
-    val actionSuccess by viewModel.actionSuccess.collectAsState()
+    val actionMessage by viewModel.actionMessage.collectAsState()
 
     var activeTab by remember { mutableStateOf("NID_PENDING") } // "NID_PENDING", "ALL_USERS", "REPORTS"
     var selectedUser by remember { mutableStateOf<User?>(null) }
@@ -129,17 +129,19 @@ fun AdminScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Flash action notices
-                AnimatedVisibility(visible = actionSuccess != null) {
+                AnimatedVisibility(visible = actionMessage != null) {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (actionMessage?.isError == true) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = actionSuccess ?: "",
+                            text = actionMessage?.message ?: "",
                             modifier = Modifier.padding(12.dp),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            color = if (actionMessage?.isError == true) Color(0xFFC62828) else Color(0xFF2E7D32),
                             fontWeight = FontWeight.SemiBold
                         )
                     }
