@@ -327,7 +327,7 @@ fun DashboardScreen(
                 item {
                     Column(modifier = Modifier.padding(vertical = 8.dp)) {
                         Text(
-                            text = "🔍 Search Blood Donors",
+                            text = "🔍 Donors near me",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.padding(horizontal = 16.dp),
                             color = MaterialTheme.colorScheme.onBackground

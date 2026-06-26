@@ -64,7 +64,10 @@ fun RequestScreen(
     val actionMessage by viewModel.actionMessage.collectAsState()
 
     var bloodGroup by remember { mutableStateOf("O+") }
-    var location by remember { mutableStateOf("") }
+    var division by remember { mutableStateOf("") }
+    var zilla by remember { mutableStateOf("") }
+    var divisionDropdownExpanded by remember { mutableStateOf(false) }
+    var zillaDropdownExpanded by remember { mutableStateOf(false) }
     var hospitalName by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
@@ -310,17 +313,95 @@ fun RequestScreen(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    label = { Text("Exact Delivery Address / Geo-Location") },
-                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("req_location_input"),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                // Division Dropdown
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = division.ifEmpty { "Select Division" },
+                        label = { Text("Division") },
+                        onValueChange = {},
+                        readOnly = true,
+                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                modifier = Modifier.clickable { divisionDropdownExpanded = true }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { divisionDropdownExpanded = true }
+                            .testTag("req_division_dropdown"),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        enabled = false,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    DropdownMenu(
+                        expanded = divisionDropdownExpanded,
+                        onDismissRequest = { divisionDropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.85f)
+                    ) {
+                        com.example.data.LocationData.divisions.forEach { div ->
+                            DropdownMenuItem(
+                                text = { Text(div) },
+                                onClick = {
+                                    division = div
+                                    zilla = "" // Reset zilla
+                                    divisionDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Zilla / District Dropdown
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = zilla.ifEmpty { "Select Zilla / District" },
+                        label = { Text("Zilla / District") },
+                        onValueChange = {},
+                        readOnly = true,
+                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                modifier = Modifier.clickable { if (division.isNotEmpty()) zillaDropdownExpanded = true }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { if (division.isNotEmpty()) zillaDropdownExpanded = true }
+                            .testTag("req_zilla_dropdown"),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        enabled = false,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    DropdownMenu(
+                        expanded = zillaDropdownExpanded,
+                        onDismissRequest = { zillaDropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.85f)
+                    ) {
+                        val zillas = com.example.data.LocationData.divisionsAndZillas[division] ?: emptyList()
+                        zillas.forEach { zil ->
+                            DropdownMenuItem(
+                                text = { Text(zil) },
+                                onClick = {
+                                    zilla = zil
+                                    zillaDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(30.dp))
 
@@ -359,11 +440,12 @@ fun RequestScreen(
 
                 Button(
                     onClick = {
+                        val fullLocation = if (division.isNotBlank() && zilla.isNotBlank()) "$zilla, $division" else ""
                         viewModel.createRequest(
                             bloodGroup = bloodGroup,
                             gender = gender,
                             age = age,
-                            location = location,
+                            location = fullLocation,
                             hospitalName = if (hospitalName.isBlank()) "" else hospitalName,
                             urgencyLevel = urgencyLevel
                         )
