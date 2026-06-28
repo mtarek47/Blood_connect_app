@@ -196,12 +196,20 @@ class BloodRepository(private val context: Context) {
             } catch (e: Exception) { Result.failure(e) }
         }
 
-    // ─── Blood Requests ──────────────────────────────────────────────────────────
     suspend fun refreshActiveRequests() = withContext(Dispatchers.IO) {
         try {
-            val response = api.getActiveRequests()
-            if (response.isSuccessful) {
-                _activeRequests.value = response.body()?.map { it.toBloodRequest() } ?: emptyList()
+            val response = try { api.getActiveRequests() } catch (e: Exception) { null }
+            val myResponse = try { api.getMyRequests() } catch (e: Exception) { null }
+            
+            val othersReqs = if (response?.isSuccessful == true) response.body()?.map { it.toBloodRequest() } ?: emptyList() else emptyList()
+            val myReqs = if (myResponse?.isSuccessful == true) myResponse.body()?.map { it.toBloodRequest() } ?: emptyList() else emptyList()
+            
+            if (response?.isSuccessful == true || myResponse?.isSuccessful == true) {
+                val combined = (othersReqs + myReqs)
+                    .distinctBy { it.id }
+                    .filter { it.status == "active" }
+                    .sortedByDescending { it.id }
+                _activeRequests.value = combined
             }
         } catch (e: Exception) { /* keep cached */ }
     }
@@ -293,6 +301,17 @@ class BloodRepository(private val context: Context) {
                 refreshUnverifiedUsers()
                 Result.success(Unit)
             } else Result.failure(Exception("Verification failed"))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun unverifyUserNid(userId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.unverifyUser(userId)
+            if (response.isSuccessful) {
+                refreshUnverifiedUsers()
+                refreshAllUsers()
+                Result.success(Unit)
+            } else Result.failure(Exception("Unverification failed"))
         } catch (e: Exception) { Result.failure(e) }
     }
 

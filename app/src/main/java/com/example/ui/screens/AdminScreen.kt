@@ -5,6 +5,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -349,7 +352,15 @@ fun AdminScreen(
             selectedUser?.let { user ->
                 AdminUserDetailsDialog(
                     user = user,
-                    onDismiss = { selectedUser = null }
+                    onDismiss = { selectedUser = null },
+                    onDelete = {
+                        viewModel.rejectUserNid(user.id)
+                        selectedUser = null
+                    },
+                    onUnverify = {
+                        viewModel.unverifyUserNid(user.id)
+                        selectedUser = null
+                    }
                 )
             }
         }
@@ -749,7 +760,9 @@ fun AdminUserCard(
 @Composable
 fun AdminUserDetailsDialog(
     user: User,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit,
+    onUnverify: () -> Unit
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -758,12 +771,15 @@ fun AdminUserDetailsDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.9f)
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header / Close button
@@ -841,6 +857,64 @@ fun AdminUserDetailsDialog(
                         label = "Availability", 
                         value = if (user.availability) "Active & Available" else "Offline"
                     )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // NID Images
+                if (!user.nidImageFront.isNullOrBlank()) {
+                    Text(text = "NID Front:", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    AsyncImage(
+                        model = Uri.parse(user.nidImageFront),
+                        contentDescription = "NID Front",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                if (!user.nidImageBack.isNullOrBlank()) {
+                    Text(text = "NID Back:", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    AsyncImage(
+                        model = Uri.parse(user.nidImageBack),
+                        contentDescription = "NID Back",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    if (user.isVerified) {
+                        Button(
+                            onClick = onUnverify,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Unverify")
+                        }
+                    }
+                    Button(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete Profile")
+                    }
                 }
             }
         }

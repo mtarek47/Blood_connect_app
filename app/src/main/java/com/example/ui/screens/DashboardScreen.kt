@@ -44,6 +44,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -94,6 +95,8 @@ fun DashboardScreen(
     val actionMessage by viewModel.actionMessage.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    
+    var showAIChat by remember { mutableStateOf(false) }
 
     val groups = listOf("All", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
 
@@ -404,6 +407,26 @@ fun DashboardScreen(
             }
         }
     }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        FloatingActionButton(
+            onClick = { showAIChat = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 16.dp, end = 16.dp),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ) {
+            Icon(
+                imageVector = Icons.Default.ChatBubble,
+                contentDescription = "AI Assistant"
+            )
+        }
+    }
+
+    if (showAIChat) {
+        AIChatBottomSheet(onDismiss = { showAIChat = false })
+    }
 }
 
 @Composable
@@ -648,20 +671,32 @@ fun DonorItemCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Blood group avatar
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = donor.bloodGroup,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+            // Blood group avatar or profile picture
+            if (!donor.profileImage.isNullOrBlank()) {
+                AsyncImage(
+                    model = Uri.parse(donor.profileImage),
+                    contentDescription = "Donor Photo",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = donor.bloodGroup,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
             }
 
             Column(

@@ -315,7 +315,7 @@ fun ProfileScreen(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = "Home Location", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                Text(text = "Current Location", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                             }
 
                             IconButton(

@@ -484,6 +484,15 @@ class BloodViewModel(
         }
     }
 
+    fun unverifyUserNid(userId: Int) = viewModelScope.launch {
+        val result = repository.unverifyUserNid(userId)
+        result.onSuccess {
+            _actionMessage.value = ActionMessage("User unverified successfully!", false)
+        }.onFailure {
+            _actionMessage.value = ActionMessage("Unverification failed. Try again.", true)
+        }
+    }
+
     fun rejectUserNid(userId: Int) = viewModelScope.launch {
         val result = repository.rejectUserNid(userId)
         result.onSuccess {

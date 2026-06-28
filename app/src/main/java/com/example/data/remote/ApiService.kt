@@ -84,6 +84,9 @@ interface ApiService {
     @PUT("admin/verify/{id}")
     suspend fun verifyUser(@Path("id") id: Int): Response<MessageResponse>
 
+    @PUT("admin/unverify/{id}")
+    suspend fun unverifyUser(@Path("id") id: Int): Response<MessageResponse>
+
     @DELETE("admin/user/{id}")
     suspend fun deleteUser(@Path("id") id: Int): Response<MessageResponse>
 
