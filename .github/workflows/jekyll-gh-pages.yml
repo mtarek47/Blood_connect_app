@@ -30,9 +30,9 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Prepare privacy policy page
         run: |
-          PRIVACY_FILE="$(find . -type f \( -iname '*privacy*policy*.html' -o -iname '*privacy*.html' \) ! -path './.git/*' ! -path './_site/*' | head -n 1)"
-          if [ -z "$PRIVACY_FILE" ]; then
-            echo "No privacy policy HTML file found. Add one (for example: privacy-policy.html)."
+          PRIVACY_FILE="./privacy-policy.html"
+          if [ ! -f "$PRIVACY_FILE" ]; then
+            echo "Missing required file: privacy-policy.html in repository root."
             exit 1
           fi
           mkdir -p _site
