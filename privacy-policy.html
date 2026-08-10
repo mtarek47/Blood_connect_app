@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Blood Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #D32F2F;
+            --secondary-color: #FF5252;
+            --bg-color: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --text-main: #212529;
+            --text-muted: #6C757D;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: var(--bg-color);
+            transform: skewY(-3deg);
+        }
+
+        header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 800px;
+            margin: -40px auto 40px;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 2;
+        }
+
+        .last-updated {
+            text-align: right;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        section {
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease-out;
+        }
+
+        section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #F1F3F5;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        p, ul {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Floating Back to Top Button */
+        #backToTop {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #backToTop.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #backToTop:hover {
+            transform: translateY(-5px);
+            background: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            background: var(--card-bg);
+            margin-top: 50px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 2.2rem; }
+            .container {
+                margin: 20px;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Privacy Policy</h1>
+        <p>Blood Connect (com.aistudio.bloodconnect.qxytb)</p>
+    </header>
+
+    <div class="container">
+        <div class="last-updated">Last Updated: <span id="currentDate"></span></div>
+
+        <section class="animate-on-scroll">
+            <h2>🛡️ 1. Introduction</h2>
+            <p>Welcome to <strong>Blood Connect</strong>. Your privacy is critically important to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the application.</p>
+        </section>
+
+        <section class="animate-on-scroll">
+            <h2>📱 2. Information We Collect</h2>
+            <p>We may collect information about you in a variety of ways. The information we may collect via the Application includes:</p>
+            <ul>
+                <li><strong>Personal Data:</strong> Demographics and other personally identifiable information (such as your name, blood group, and email address) that you voluntarily give to us when registering.</li>
+                <li><strong>Camera Access:</strong> We request camera access to allow you to take and upload profile pictures or relevant documents.</li>
+                <li><strong>Push Notifications:</strong> We may request to send you push notifications regarding urgent blood requests, account updates, or other relevant alerts.</li>
+            </ul>
+        </section>
+
+        <section class="animate-on-scroll">
+            <h2>🤖 3. Use of AI and Third-Party Services</h2>
+            <p>Our application integrates the <strong>Google Gemini API</strong> to provide intelligent assistance. By using these features, you acknowledge that certain queries and inputs may be processed by these third-party AI services to generate responses.</p>
+            <p>We also use Firebase for backend services and cloud messaging (push notifications).</p>
+        </section>
+
+        <section class="animate-on-scroll">
+            <h2>🔒 4. How We Use Your Information</h2>
+            <p>Having accurate information about you permits us to provide you with a smooth, efficient, and customized experience. Specifically, we may use information collected about you via the Application to:</p>
+            <ul>
+                <li>Create and manage your account.</li>
+                <li>Facilitate communication between blood donors and recipients.</li>
+                <li>Deliver targeted notifications concerning urgent blood needs in your area.</li>
+                <li>Improve our AI assistant responses and overall app functionality.</li>
+            </ul>
+        </section>
+
+        <section class="animate-on-scroll">
+            <h2>🤝 5. Disclosure of Your Information</h2>
+            <p>We do not sell, trade, or rent your personal identification information to others. We may share generic aggregated demographic information not linked to any personal identification information.</p>
+            <p>Your blood group and approximate location (if provided) may be visible to other registered users solely for the purpose of facilitating blood donation.</p>
+        </section>
+
+        <section class="animate-on-scroll">
+            <h2>📝 6. Policy for Children</h2>
+            <p>We do not knowingly solicit information from or market to children under the age of 13. If you become aware of any data we have collected from children under age 13, please contact us immediately.</p>
+        </section>
+
+        <section class="animate-on-scroll">
+            <h2>📞 7. Contact Us</h2>
+            <p>If you have questions or comments about this Privacy Policy, please contact us at:</p>
+            <p><strong>Email:</strong> tarekparvez47@gmail.com </p>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; <span id="year"></span> Blood Connect. All rights reserved.</p>
+    </footer>
+
+    <button id="backToTop" title="Go to top">↑</button>
+
+    <script>
+        // Set dynamic dates
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Scroll Animation Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+            observer.observe(el);
+        });
+
+        // Back to top button logic
+        const backToTopBtn = document.getElementById('backToTop');
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
+</body>
+</html>
