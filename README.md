@@ -14,5 +14,5 @@
 ## Privacy policy GitHub Pages deploy
 
 - Keep your privacy policy file at exactly `privacy-policy.html` in the project root.
-- On push to `master`, GitHub Actions deploys only `privacy-policy.html` to GitHub Pages.
+- On push to `main`, GitHub Actions deploys only `privacy-policy.html` to GitHub Pages.
 - The deployed URL serves the page as the site root (`index.html`).
